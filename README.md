@@ -19,11 +19,12 @@
 ## 동작 방식
 
 ```
-사진 → 글자 인식(OCR) → 와이파이 아이디와 비밀번호 골라내기 → 시스템 와이파이 창 → 연결
-QR 코드 ─────────────────→ 와이파이 아이디와 비밀번호 읽기 ──┘
+사진 → 프록시 서버 → Claude Haiku 4.5가 아이디와 비밀번호 인식 → 시스템 와이파이 창 → 연결
+QR 코드 ─────────────→ 앱에서 아이디와 비밀번호 바로 읽기 ─────┘
 ```
 
-- 글자 인식은 폰 안에서 처리합니다. 서버가 없고 인터넷이 연결되지 않아도 동작합니다
+- 사진 인식은 AI(Claude Haiku 4.5)가 합니다. API 키는 앱이 아니라 프록시 서버(Cloudflare Workers)에만 있습니다
+- QR 코드는 서버를 거치지 않고 앱에서 바로 읽습니다
 - Android에서는 주변 와이파이 목록과 비교해서 잘못 읽힌 와이파이 이름을 바로잡습니다
 
 ## 지원 환경
@@ -35,7 +36,8 @@ QR 코드 ─────────────────→ 와이파이 �
 
 - [Expo](https://expo.dev) SDK 57, React Native, TypeScript
 - [Expo Router](https://docs.expo.dev/router/introduction/): 화면 이동
-- [Google ML Kit Text Recognition](https://developers.google.com/ml-kit/vision/text-recognition/v2): 글자 인식 (한국어 모델)
+- [Claude Haiku 4.5](https://platform.claude.com/docs/en/build-with-claude/vision): 사진에서 와이파이 정보 인식
+- [Cloudflare Workers](https://developers.cloudflare.com/workers/): 프록시 서버
 - Expo Modules API (Kotlin): Android 와이파이 연결
 - Expo Go 대신 development build를 사용합니다
 
@@ -85,10 +87,9 @@ src/
   components/           화면 부품 (셔터 버튼, 인식 틀, 아이콘 등)
   constants/            색상 등 디자인 값
   lib/                  핵심 기능
-    ocr.ts              사진에서 글자 읽기
-    parse-wifi.ts       읽은 글자에서 아이디와 비밀번호 골라내기
     parse-wifi-qr.ts    와이파이 QR 코드 읽기
     wifi.ts             시스템 와이파이 창 띄우기
+server/                 프록시 서버 (Cloudflare Workers, 사진을 Claude에 보내고 결과만 돌려줌)
 modules/
   wifi-manager/         Android 와이파이 연결 네이티브 코드 (Kotlin)
 assets/                 앱 아이콘, 스플래시 이미지

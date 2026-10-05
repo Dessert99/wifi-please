@@ -1,0 +1,20 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "snapfi-server",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-09-15",
+	"observability": {
+		"enabled": true
+	},
+	// 같은 IP에서 1분에 10번까지만 인식 요청을 받는다.
+	"ratelimits": [
+		{
+			"name": "SCAN_RATE_LIMITER",
+			"namespace_id": "1001",
+			"simple": {
+				"limit": 10,
+				"period": 60
+			}
+		}
+	]
+}
