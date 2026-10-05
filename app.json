@@ -32,6 +32,22 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "와이파이 안내문을 찍으려면 카메라 권한이 필요해요.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "갤러리의 와이파이 안내문 사진을 읽으려면 사진 권한이 필요해요.",
+          "microphonePermission": false
+        }
       ]
     ],
     "experiments": {

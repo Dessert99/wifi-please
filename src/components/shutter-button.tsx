@@ -2,13 +2,14 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { colors } from '@/constants/theme';
 
-export function ShutterButton({ onPress }: { onPress: () => void }) {
+export function ShutterButton({ onPress, disabled }: { onPress: () => void; disabled?: boolean }) {
   return (
     <Pressable
       onPress={onPress}
+      disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel="촬영"
-      style={({ pressed }) => [styles.ring, pressed && styles.pressed]}>
+      style={({ pressed }) => [styles.ring, pressed && styles.pressed, disabled && styles.disabled]}>
       <View style={styles.inner} />
     </Pressable>
   );
@@ -32,5 +33,8 @@ const styles = StyleSheet.create({
   },
   pressed: {
     transform: [{ scale: 0.94 }],
+  },
+  disabled: {
+    opacity: 0.4,
   },
 });

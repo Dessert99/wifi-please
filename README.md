@@ -88,6 +88,7 @@ src/
   constants/            색상 등 디자인 값
   lib/                  핵심 기능
     parse-wifi-qr.ts    와이파이 QR 코드 읽기
+    scan-api.ts         사진을 줄여서 프록시 서버로 보내고 인식 결과 받기
     wifi.ts             시스템 와이파이 창 띄우기
 server/                 프록시 서버 (Cloudflare Workers, 사진을 Claude에 보내고 결과만 돌려줌)
 modules/
