@@ -1,18 +1,11 @@
-import { StyleSheet, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
-import { colors } from '@/constants/theme';
-import { Icon } from './ui/icon';
+import { Image } from 'expo-image';
+import { StyleSheet } from 'react-native';
 
-// 인식 틀과 와이파이 도형을 조합해 브랜드 심볼을 그린다.
+// 출시 아이콘과 같은 이미지를 사용해 앱 안에서도 동일한 브랜드 마크를 표시한다.
 export function BrandMark() {
-  return <View style={styles.brandMark}>
-    <Svg width={72} height={72} viewBox="0 0 72 72" style={{ position: 'absolute', left: 16, top: 16 }}>
-      <Path d="M8 25V16a8 8 0 0 1 8-8h9m22 0h9a8 8 0 0 1 8 8v9M8 47v9a8 8 0 0 0 8 8h9m22 0h9a8 8 0 0 0 8-8v-9" stroke="white" strokeWidth={3} fill="none" strokeLinecap="round" />
-    </Svg>
-    <Icon name="wifi" color="white" size={42} />
-  </View>;
+  return <Image source={require('@/assets/images/icon.png')} style={styles.brandMark} contentFit="contain" accessibilityLabel="WiFi Please" />;
 }
 
 const styles = StyleSheet.create({
-  brandMark: { width: 104, height: 104, backgroundColor: colors.accent, borderRadius: 30, alignItems: 'center', justifyContent: 'center' },
+  brandMark: { width: 104, height: 104, borderRadius: 25, overflow: 'hidden' },
 });
