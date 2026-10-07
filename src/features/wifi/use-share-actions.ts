@@ -1,8 +1,6 @@
 import * as Clipboard from 'expo-clipboard';
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Dialog, Icon, type DialogState } from '@/components/ui';
+import type { DialogState } from '@/components/ui/dialog';
 import { shareWifiCredentials } from '@/features/wifi/services/share-wifi';
 import { openSystemWifiDialog } from '@/features/wifi/services/connect-wifi';
 import type { WifiCredentials } from '@/features/wifi/types';
@@ -13,7 +11,6 @@ export function useShareActions(wifi: WifiCredentials | null) {
   const [busy, setBusy] = useState(false);
   const lock = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const insets = useSafeAreaInsets();
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
   async function share() {
@@ -45,16 +42,7 @@ export function useShareActions(wifi: WifiCredentials | null) {
     } finally { lock.current = false; setBusy(false); }
   }
   return {
-    share, copy, connect, busy,
-    feedback: <>
-      <Dialog value={dialog} onClose={() => setDialog(null)} />
-      {copied && <View pointerEvents="none" accessibilityLiveRegion="polite" style={[styles.toast, { bottom: insets.bottom + 144 }]}>
-        <Icon name="check" size={18} color="white" /><Text style={styles.toastText}>비밀번호를 복사했어요</Text>
-      </View>}
-    </>,
+    share, copy, connect, busy, dialog, copied,
+    closeDialog: () => setDialog(null),
   };
 }
-const styles = StyleSheet.create({
-  toast: { position: 'absolute', alignSelf: 'center', backgroundColor: '#24272D', borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  toastText: { color: 'white', fontSize: 13, fontWeight: '600' },
-});

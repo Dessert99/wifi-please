@@ -3,11 +3,13 @@ import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FlashIcon } from '@/components/icons';
+import { FlashIcon, Icon } from '@/components/ui/icon';
 import { ScanFrame } from '@/features/wifi/components/scan-frame';
 import { ShutterButton } from '@/features/wifi/components/shutter-button';
-import { BrandMark, Button, Dialog, Icon, ui } from '@/components/ui';
-import { colors } from '@/constants/theme';
+import { BrandMark } from '@/components/brand-mark';
+import { Button } from '@/components/ui/button';
+import { Dialog } from '@/components/ui/dialog';
+import { colors, typography } from '@/constants/theme';
 import { useCapture } from '@/features/wifi/use-capture';
 
 export default function CaptureScreen() {
@@ -15,7 +17,7 @@ export default function CaptureScreen() {
   const { cameraRef, ...capture } = useCapture();
   const [flash, setFlash] = useState(false);
   const { permission, busy } = capture;
-  if (!permission) return <View style={[ui.screen, { justifyContent: 'center' }]}><ActivityIndicator color={colors.accent} /></View>;
+  if (!permission) return <View style={[styles.screen, { justifyContent: 'center' }]}><ActivityIndicator color={colors.accent} /></View>;
   const denied = !permission.canAskAgain;
   return <View style={[styles.container, { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 12), backgroundColor: permission.granted ? colors.camera : colors.background }]}>
     <StatusBar style={permission.granted ? 'light' : 'dark'} />
@@ -24,10 +26,10 @@ export default function CaptureScreen() {
       <ScrollView contentContainerStyle={styles.permissionContent}>
         <BrandMark />
         <Text accessibilityRole="header" style={styles.permissionTitle}>{denied ? '카메라를 켜면\n바로 찍을 수 있어요' : '한 번 찍고,\n함께 연결해요'}</Text>
-        <Text style={[ui.description, { textAlign: 'center' }]}>{denied ? '설정에서 카메라 권한을 허용해 주세요.\n저장된 사진으로도 시작할 수 있어요.' : '카페 와이파이 안내문을 찍으면\n직접 입력할 필요 없이 연결해요.'}</Text>
+        <Text style={[typography.description, { textAlign: 'center' }]}>{denied ? '설정에서 카메라 권한을 허용해 주세요.\n저장된 사진으로도 시작할 수 있어요.' : '카페 와이파이 안내문을 찍으면\n직접 입력할 필요 없이 연결해요.'}</Text>
         {busy && <ActivityIndicator color={colors.accent} />}
       </ScrollView>
-      <View style={[ui.footer, { paddingBottom: 16 }]}>
+      <View style={[styles.footer, { paddingBottom: 16 }]}>
         <Button title={denied ? '설정에서 허용하기' : '카메라 허용하기'} onPress={capture.allowCamera} disabled={busy} />
         <Button title={busy ? '사진을 읽는 중이에요' : '사진에서 찾기'} secondary onPress={capture.pickPhoto} disabled={busy} />
         <Text style={styles.footnote}>사진 인식에는 인터넷이 필요해요</Text>
@@ -55,6 +57,9 @@ export default function CaptureScreen() {
   </View>;
 }
 const styles = StyleSheet.create({
+  footer: { paddingHorizontal: 24, paddingTop: 12, gap: 8 },
+  screen: { flex: 1, backgroundColor: colors.background },
+
   container: { flex: 1 },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 6 },
   brand: { color: 'white', fontSize: 18, fontWeight: '800' },

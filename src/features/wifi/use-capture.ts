@@ -3,7 +3,7 @@ import { launchImageLibraryAsync } from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Linking } from 'react-native';
-import type { DialogState } from '@/components/ui';
+import type { DialogState } from '@/components/ui/dialog';
 import { parseWifiQr } from '@/features/wifi/lib/wifi-qr';
 import { ScanError, scanWifiPhoto, type Photo } from '@/features/wifi/services/scan-photo';
 import { openSystemWifiDialog } from '@/features/wifi/services/connect-wifi';
