@@ -30,7 +30,7 @@ export default function QrScreen() {
       </View>
       <View style={[styles.card, { paddingHorizontal: 0, marginTop: 18 }]}><WifiQr wifi={wifi} large /></View>
       <Text selectable style={{ fontSize: 19, lineHeight: 28, fontWeight: '700', textAlign: 'center', color: colors.text }}>{wifi.ssid}</Text>
-      <Text style={[typography.description, { textAlign: 'center', fontSize: 13 }]}>친구는 Snapfi 설치 없이 연결할 수 있어요</Text>
+      <Text style={[typography.description, { textAlign: 'center', fontSize: 13 }]}>친구는 WiFi Please 설치 없이 연결할 수 있어요</Text>
     </Screen>
     <ShareFeedback dialog={actions.dialog} copied={actions.copied} onClose={actions.closeDialog} />
   </>;

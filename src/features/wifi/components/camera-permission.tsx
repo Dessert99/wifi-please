@@ -15,7 +15,7 @@ export function CameraPermission({ canAskAgain, busy, onAllow, onPickPhoto }: Ca
   const denied = !canAskAgain;
   return (
     <>
-      <Text style={styles.lightBrand}>Snapfi</Text>
+      <Text style={styles.lightBrand}>WiFi Please</Text>
       <ScrollView contentContainerStyle={styles.permissionContent}>
         <BrandMark />
         <Text accessibilityRole="header" style={styles.permissionTitle}>{denied ? '카메라를 켜면\n바로 찍을 수 있어요' : '한 번 찍고,\n함께 연결해요'}</Text>

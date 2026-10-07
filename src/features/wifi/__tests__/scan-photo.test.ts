@@ -8,7 +8,7 @@ vi.mock('expo-image-manipulator', () => ({
 }));
 
 // ESM 모듈이 주소를 읽기 전에 테스트 환경변수를 설정한다.
-vi.hoisted(() => { vi.stubEnv('EXPO_PUBLIC_SCAN_API_URL', 'https://snapfi.test'); });
+vi.hoisted(() => { vi.stubEnv('EXPO_PUBLIC_SCAN_API_URL', 'https://wifi-please.test'); });
 const photo = { uri: 'file:///test.jpg', width: 2000, height: 1000 };
 // 각 테스트의 fetch 대체와 가상 타이머를 원래 상태로 돌린다.
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });

@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Snapfi",
-    "slug": "wifi-connect",
+    "name": "WiFi Please",
+    "slug": "wifi-please",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "wificonnect",
+    "scheme": "wifiplease",
     "userInterfaceStyle": "light",
     "ios": {
       "icon": "./assets/expo.icon"
@@ -18,7 +18,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.snapfi.app",
+      "package": "com.wifiplease.app",
       "permissions": [
         "android.permission.CAMERA"
       ]
@@ -69,8 +69,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "7bee3bb4-8380-4120-adf4-e3fa4b83d006"
+        "projectId": "38a30fb9-6c9e-4e69-89c2-98bc1c011efa"
       }
-    }
+    },
+    "owner": "dessert99"
   }
 }

@@ -118,7 +118,7 @@ export function useCapture() {
     try {
       await requestAccess();
     } catch {
-      setDialog({ title: '설정을 열지 못했어요', message: '기기 설정에서 Snapfi의 카메라 권한을 허용해 주세요.', primary: '닫기', onPrimary: closeDialog });
+      setDialog({ title: '설정을 열지 못했어요', message: '기기 설정에서 WiFi Please의 카메라 권한을 허용해 주세요.', primary: '닫기', onPrimary: closeDialog });
     }
   }
   return { permission, cameraRef, ready, setReady, cameraError, cameraActive, busy, stage, dialog, closeDialog, pickPhoto, takePhoto, onBarcodeScanned, allowCamera, wifi, showInfo };

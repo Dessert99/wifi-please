@@ -29,7 +29,7 @@ export default function CaptureScreen() {
         onPickPhoto={capture.pickPhoto}
       />
     ) : <>
-      <View style={styles.topBar}><Text style={styles.brand}>Snapfi</Text>
+      <View style={styles.topBar}><Text style={styles.brand}>WiFi Please</Text>
         <Pressable accessibilityRole="button" accessibilityLabel="플래시" accessibilityState={{ selected: flash }} onPress={() => setFlash(!flash)} style={[styles.flash, flash && { backgroundColor: 'white' }]}><FlashIcon color={flash ? colors.camera : 'white'} /></Pressable>
       </View>
       <View style={styles.preview}>
