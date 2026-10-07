@@ -2,16 +2,9 @@
 // 형식: WIFI:T:WPA;S:cafe_onda_5G;P:onda2024!;H:false;;
 // 값 안의 \ ; , : " 는 앞에 \ 를 붙여 이스케이프한다.
 
-export type WifiQr = {
-  ssid: string;
-  password: string;
-  // WPA, WEP, nopass(비밀번호 없음) 등
-  security: string;
-  // 숨겨진 네트워크인지
-  hidden: boolean;
-};
+import type { WifiCredentials } from '../types';
 
-export function parseWifiQr(raw: string): WifiQr | null {
+export function parseWifiQr(raw: string): WifiCredentials | null {
   const text = raw.trim();
   if (!/^WIFI:/i.test(text)) return null;
 
@@ -64,4 +57,10 @@ export function parseWifiQr(raw: string): WifiQr | null {
     security: fields.T || (password ? 'WPA' : 'nopass'),
     hidden: fields.H?.toLowerCase() === 'true',
   };
+}
+
+const escapeField = (value: string) => value.replace(/[\\;,:\"]/g, '\\$&');
+
+export function createWifiQr(wifi: WifiCredentials) {
+  return `WIFI:T:${escapeField(wifi.security)};S:${escapeField(wifi.ssid)};P:${escapeField(wifi.password)};H:${wifi.hidden};;`;
 }

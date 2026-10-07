@@ -96,13 +96,15 @@ src/
     share.tsx           QR 및 와이파이 정보 공유
     qr.tsx              QR 확대
     password.tsx        비밀번호 확대
-  components/           화면 부품 (셔터 버튼, 인식 틀, 아이콘 등)
-  features/wifi/        메모리 세션, 촬영 흐름, 공유 및 복사
-  constants/            색상 등 디자인 값
-  lib/                  핵심 기능
-    parse-wifi-qr.ts    와이파이 QR 코드 읽기
-    scan-api.ts         사진을 줄여서 프록시 서버로 보내고 인식 결과 받기
-    wifi.ts             시스템 와이파이 창 띄우기
+  components/           앱 공통 UI
+  constants/            공통 색상과 글꼴 스타일
+  features/wifi/        와이파이 기능
+    types.ts            공통 와이파이 타입
+    session.tsx          메모리 세션
+    components/         와이파이 전용 화면 부품
+    lib/                QR 해석과 생성
+    services/           사진 인식 요청, 시스템 연결 및 공유
+    __tests__/          기능별 Vitest 테스트
 server/                 프록시 서버 (Cloudflare Workers, 사진을 Claude에 보내고 결과만 돌려줌)
 modules/
   wifi-manager/         Android 와이파이 연결 네이티브 코드 (Kotlin)

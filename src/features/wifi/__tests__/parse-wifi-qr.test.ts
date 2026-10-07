@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseWifiQr } from '../parse-wifi-qr';
+import { parseWifiQr } from '../lib/wifi-qr';
 
 describe('parseWifiQr', () => {
   it('기본 형식', () => {

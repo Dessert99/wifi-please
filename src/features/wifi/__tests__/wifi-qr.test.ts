@@ -1,6 +1,5 @@
 import { expect, it } from 'vitest';
-import { createWifiQr } from '../wifi-qr';
-import { parseWifiQr } from '../parse-wifi-qr';
+import { createWifiQr, parseWifiQr } from '../lib/wifi-qr';
 
 it.each([
   { ssid: '카페 2층', password: ' cafe:abc;\\"! ', security: 'WPA', hidden: true },

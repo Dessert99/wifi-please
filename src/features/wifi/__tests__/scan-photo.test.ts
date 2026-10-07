@@ -1,5 +1,5 @@
 import { afterAll, afterEach, expect, it, vi } from 'vitest';
-import { scanWifiPhoto, ScanError } from '../scan-api';
+import { scanWifiPhoto, ScanError } from '../services/scan-photo';
 
 vi.mock('expo-image-manipulator', () => ({
   SaveFormat: { JPEG: 'jpeg' },

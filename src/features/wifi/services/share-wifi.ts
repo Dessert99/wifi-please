@@ -1,6 +1,6 @@
 import { Share } from 'react-native';
 
-import type { WifiCredentials } from '@/lib/wifi';
+import type { WifiCredentials } from '@/features/wifi/types';
 
 // 공유 앱과 받는 사람은 시스템 공유 창 및 선택한 앱에서 사용자가 고른다.
 export function shareWifiCredentials({ ssid, password }: WifiCredentials) {

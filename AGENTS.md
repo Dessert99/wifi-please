@@ -6,10 +6,10 @@ Snapfi: 식당이나 카페의 와이파이 안내문을 찍으면 바로 연결
 
 - **앱 화면 없이 바로 시스템 와이파이 창**: 촬영이나 QR 인식이 끝나면 앱 안의 확인/수정 화면을 거치지 않고 바로 시스템 와이파이 연결 창을 띄운다. 앱 확인 화면은 사용자 요청으로 삭제했으니 다시 만들지 않는다.
 - **사진 인식은 AI로**: 온디바이스 OCR(ML Kit)과 규칙 기반 파싱은 쓰지 않는다. 사진은 긴 쪽 1024px JPEG로 줄여 프록시 서버로 보내고, 서버가 Claude Haiku 4.5(`claude-haiku-4-5`)로 와이파이 이름과 비밀번호를 뽑는다. 규칙 기반 파서는 정확도 문제로 일부러 지웠다.
-- **QR 코드는 앱에서 직접**: 와이파이 QR(`WIFI:S:...;P:...;;`)은 서버를 거치지 않고 `src/lib/parse-wifi-qr.ts`로 읽는다.
+- **QR 코드는 앱에서 직접**: 와이파이 QR(`WIFI:S:...;P:...;;`)은 서버를 거치지 않고 `src/features/wifi/lib/wifi-qr.ts`로 읽는다.
 - **공유는 기본 Share API**: React Native의 `Share.share()`로 와이파이 이름과 비밀번호를 텍스트로 공유한다. 공유 버튼은 하나로 두고, 사용자가 시스템 공유 창에서 카카오톡 등 앱을 선택한다. 카카오 SDK나 자체 대화방 선택 화면은 만들지 않는다. 시스템 연결 창을 닫은 뒤 공유 화면을 연다. QR 확대, 비밀번호 확대 및 복사를 제공한다. 사용자가 전체 화면 시안을 승인했다. 와이파이 정보는 앱 메모리에만 보관하며 라우트 파라미터나 저장소에 기록하지 않는다.
 - **프록시 서버는 Cloudflare Workers**: `server/` 폴더. API 키는 Cloudflare secret(`ANTHROPIC_API_KEY`)에만 있고 앱에는 절대 넣지 않는다. IP당 1분 10회 요청 제한이 있다. 배포 주소는 `.env`의 `EXPO_PUBLIC_SCAN_API_URL`. Vercel은 무료 요금제가 비상업 용도만 허용해서 쓰지 않기로 했다.
-- **Android 먼저**: Android 11 이상을 우선 지원하고 iOS는 나중에 한다. 시스템 와이파이 창은 `Settings.ACTION_WIFI_ADD_NETWORKS`(Android 11+)를 쓴다. `src/lib/wifi.ts`의 `openSystemWifiDialog()`는 Kotlin 네이티브 모듈(`modules/wifi-manager/`)을 호출한다. 시스템 창의 저장/취소 결과를 기다리며 실제 연결 성공으로 표시하지 않는다. 네이티브 코드는 실기기 검증이 필요하다.
+- **Android 먼저**: Android 11 이상을 우선 지원하고 iOS는 나중에 한다. 시스템 와이파이 창은 `Settings.ACTION_WIFI_ADD_NETWORKS`(Android 11+)를 쓴다. `src/features/wifi/services/connect-wifi.ts`의 `openSystemWifiDialog()`는 Kotlin 네이티브 모듈(`modules/wifi-manager/`)을 호출한다. 시스템 창의 저장/취소 결과를 기다리며 실제 연결 성공으로 표시하지 않는다. 네이티브 코드는 실기기 검증이 필요하다.
 - **디자인**: 포인트 색 블루 `#1A73E8`, 밝은 바탕 `#F5F6F8`. 값은 `src/constants/theme.ts`에 있다. 앱 이름은 Snapfi.
 - **로고**: "인식 틀 모서리 + 와이파이 기호, 파란 바탕에 흰 기호"로 골랐지만 아직 앱 아이콘에 적용하지 않았다. 지금 `assets/`의 아이콘은 Expo 기본값이다.
 

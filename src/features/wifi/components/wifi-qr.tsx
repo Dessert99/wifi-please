@@ -1,7 +1,7 @@
 import { useWindowDimensions, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
-import type { WifiCredentials } from '@/lib/wifi';
-import { createWifiQr } from '@/lib/wifi-qr';
+import type { WifiCredentials } from '@/features/wifi/types';
+import { createWifiQr } from '@/features/wifi/lib/wifi-qr';
 
 export function WifiQr({ wifi, large = false }: { wifi: WifiCredentials; large?: boolean }) {
   const { width } = useWindowDimensions();

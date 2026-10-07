@@ -1,12 +1,6 @@
+import type { WifiCredentials } from '../types';
 import { Platform } from 'react-native';
-import WifiManager from '../../modules/wifi-manager';
-
-export type WifiCredentials = {
-  ssid: string;
-  password: string;
-  security: string;
-  hidden: boolean;
-};
+import WifiManager from '../../../../modules/wifi-manager';
 
 export async function openSystemWifiDialog(wifi: WifiCredentials) {
   if (Platform.OS !== 'android' || !WifiManager) {

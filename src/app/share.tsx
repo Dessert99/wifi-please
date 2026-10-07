@@ -1,7 +1,7 @@
 import { Redirect, router } from 'expo-router';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button, Icon, Screen, ui } from '@/components/ui';
-import { WifiQr } from '@/components/wifi-qr';
+import { WifiQr } from '@/features/wifi/components/wifi-qr';
 import { colors } from '@/constants/theme';
 import { useWifiSession } from '@/features/wifi/session';
 import { useShareActions } from '@/features/wifi/share-actions';

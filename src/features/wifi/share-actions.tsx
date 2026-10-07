@@ -3,8 +3,9 @@ import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Dialog, Icon, type DialogState } from '@/components/ui';
-import { shareWifiCredentials } from '@/lib/share-wifi';
-import { openSystemWifiDialog, type WifiCredentials } from '@/lib/wifi';
+import { shareWifiCredentials } from '@/features/wifi/services/share-wifi';
+import { openSystemWifiDialog } from '@/features/wifi/services/connect-wifi';
+import type { WifiCredentials } from '@/features/wifi/types';
 
 export function useShareActions(wifi: WifiCredentials | null) {
   const [dialog, setDialog] = useState<DialogState | null>(null);

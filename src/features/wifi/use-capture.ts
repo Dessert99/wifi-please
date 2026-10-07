@@ -4,9 +4,10 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Linking } from 'react-native';
 import type { DialogState } from '@/components/ui';
-import { parseWifiQr } from '@/lib/parse-wifi-qr';
-import { ScanError, scanWifiPhoto, type Photo } from '@/lib/scan-api';
-import { openSystemWifiDialog, type WifiCredentials } from '@/lib/wifi';
+import { parseWifiQr } from '@/features/wifi/lib/wifi-qr';
+import { ScanError, scanWifiPhoto, type Photo } from '@/features/wifi/services/scan-photo';
+import { openSystemWifiDialog } from '@/features/wifi/services/connect-wifi';
+import type { WifiCredentials } from '@/features/wifi/types';
 import { useWifiSession } from './session';
 
 export function useCapture() {

@@ -4,8 +4,8 @@ import { AppState } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { launchImageLibraryAsync } from 'expo-image-picker';
 import { router } from 'expo-router';
-import { scanWifiPhoto, ScanError } from '@/lib/scan-api';
-import { openSystemWifiDialog } from '@/lib/wifi';
+import { scanWifiPhoto, ScanError } from '@/features/wifi/services/scan-photo';
+import { openSystemWifiDialog } from '@/features/wifi/services/connect-wifi';
 import { useWifiSession } from '../session';
 import { useCapture } from '../use-capture';
 
@@ -26,8 +26,8 @@ vi.mock('expo-router', async () => {
     useFocusEffect: (effect: React.EffectCallback) => useEffect(effect, [effect]),
   };
 });
-vi.mock('@/lib/wifi', () => ({ openSystemWifiDialog: vi.fn() }));
-vi.mock('@/lib/scan-api', () => ({
+vi.mock('@/features/wifi/services/connect-wifi', () => ({ openSystemWifiDialog: vi.fn() }));
+vi.mock('@/features/wifi/services/scan-photo', () => ({
   scanWifiPhoto: vi.fn(),
   ScanError: class extends Error {
     constructor(readonly reason: ConstructorParameters<typeof ScanError>[0]) { super(reason); }

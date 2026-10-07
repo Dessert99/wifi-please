@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
-import type { WifiCredentials } from '@/lib/wifi';
+import type { WifiCredentials } from '@/features/wifi/types';
 
 const SessionContext = createContext<{
   wifi: WifiCredentials | null;
