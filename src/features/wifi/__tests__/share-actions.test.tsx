@@ -72,3 +72,19 @@ it('공유 실패 안내에서 재시도할 수 있다', async () => {
   expect(shareWifiCredentials).toHaveBeenCalledTimes(2);
   expect(actions.dialog).toBeNull();
 });
+
+it.each(['false', 'exception'] as const)('복사가 %s로 실패하면 성공 표시 없이 안내하고 재시도한다', async (failure) => {
+  if (failure === 'false') vi.mocked(Clipboard.setStringAsync).mockResolvedValueOnce(false);
+  else vi.mocked(Clipboard.setStringAsync).mockRejectedValueOnce(new Error('클립보드 오류'));
+
+  await act(async () => { await actions.copy(); });
+  expect(actions.copied).toBe(false);
+  const dialog = actions.dialog;
+  expect(dialog?.title).toBe('복사하지 못했어요');
+  if (!dialog) throw new Error('복사 오류 안내가 표시되지 않았어요.');
+
+  await act(async () => { dialog.onPrimary(); });
+  expect(Clipboard.setStringAsync).toHaveBeenLastCalledWith(wifi.password);
+  expect(actions.copied).toBe(true);
+  expect(actions.dialog).toBeNull();
+});

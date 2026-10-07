@@ -1,6 +1,6 @@
-import * as Clipboard from 'expo-clipboard';
 import { useEffect, useRef, useState } from 'react';
 import type { DialogState } from '@/components/ui/dialog';
+import { copyWifiPassword } from './services/copy-wifi-password';
 import { shareWifiCredentials } from '@/features/wifi/services/share-wifi';
 import { openSystemWifiDialog } from '@/features/wifi/services/connect-wifi';
 import type { WifiCredentials } from '@/features/wifi/types';
@@ -25,7 +25,7 @@ export function useShareActions(wifi: WifiCredentials | null) {
   async function copy() {
     if (!wifi) return;
     try {
-      if (!await Clipboard.setStringAsync(wifi.password)) throw new Error('복사 실패');
+      await copyWifiPassword(wifi.password);
       if (timer.current) clearTimeout(timer.current);
       setCopied(true);
       timer.current = setTimeout(() => setCopied(false), 2200);
