@@ -14,8 +14,13 @@ export default function ShareScreen() {
   const actions = useShareActions(wifi);
   if (!wifi) return <Redirect href="/" />;
   const secured = wifi.password !== '';
+  function goBack() {
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
+  }
+
   return <>
-    <Screen title="와이파이 공유" footer={<>
+    <Screen onBack={goBack} title="와이파이 공유" footer={<>
       <Button title="공유하기" onPress={actions.share} disabled={actions.busy} icon="share" />
       {secured && <Button title="비밀번호 크게 보기" quiet onPress={() => router.push('/password')} />}
     </>}>

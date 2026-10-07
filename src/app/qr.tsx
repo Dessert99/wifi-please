@@ -1,5 +1,5 @@
 import { ShareFeedback } from '@/features/wifi/components/share-feedback';
-import { Redirect } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -13,8 +13,13 @@ export default function QrScreen() {
   const { wifi } = useWifiSession();
   const actions = useShareActions(wifi);
   if (!wifi) return <Redirect href="/" />;
+  function goBack() {
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
+  }
+
   return <>
-    <Screen title="QR로 연결" footer={<Button title="와이파이 정보 공유" secondary icon="share" disabled={actions.busy} onPress={actions.share} />}>
+    <Screen onBack={goBack} title="QR로 연결" footer={<Button title="와이파이 정보 공유" secondary icon="share" disabled={actions.busy} onPress={actions.share} />}>
       <View style={{ alignItems: 'center', gap: 12, marginTop: 20 }}>
         <Icon name="qr" size={30} color={colors.accent} />
         <Text accessibilityRole="header" style={typography.title}>카메라로 비춰주세요</Text>

@@ -1,5 +1,5 @@
 import { ShareFeedback } from '@/features/wifi/components/share-feedback';
-import { Redirect } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
@@ -12,8 +12,13 @@ export default function PasswordScreen() {
   const actions = useShareActions(wifi);
   if (!wifi) return <Redirect href="/" />;
   if (!wifi.password) return <Redirect href="/share" />;
+  function goBack() {
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
+  }
+
   return <>
-    <Screen title="비밀번호 크게 보기" footer={<>
+    <Screen onBack={goBack} title="비밀번호 크게 보기" footer={<>
       <Button title="비밀번호 복사" icon="copy" onPress={actions.copy} />
       <Button title="공유하기" secondary icon="share" disabled={actions.busy} onPress={actions.share} />
     </>}>
