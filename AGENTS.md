@@ -11,7 +11,7 @@ WiFi Please: 식당이나 카페의 와이파이 안내문을 찍으면 바로 �
 - **프록시 서버는 Cloudflare Workers**: `server/` 폴더. API 키는 Cloudflare secret(`ANTHROPIC_API_KEY`)에만 있고 앱에는 절대 넣지 않는다. IP당 1분 10회 요청 제한이 있다. 배포 주소는 `.env`의 `EXPO_PUBLIC_SCAN_API_URL`. Vercel은 무료 요금제가 비상업 용도만 허용해서 쓰지 않기로 했다.
 - **Android 먼저**: Android 11 이상을 우선 지원하고 iOS는 나중에 한다. 시스템 와이파이 창은 `Settings.ACTION_WIFI_ADD_NETWORKS`(Android 11+)를 쓴다. `src/features/wifi/services/connect-wifi.ts`의 `openSystemWifiDialog()`는 Kotlin 네이티브 모듈(`modules/wifi-manager/`)을 호출한다. 시스템 창의 저장/취소 결과를 기다리며 실제 연결 성공으로 표시하지 않는다. 네이티브 코드는 실기기 검증이 필요하다.
 - **디자인**: 포인트 색 블루 `#1A73E8`, 밝은 바탕 `#F5F6F8`. 값은 `src/constants/theme.ts`에 있다. 앱 이름은 WiFi Please. 기술 식별자는 `wifi-please`, Android 패키지는 `com.wifiplease.app`, 딥링크 스킴은 `wifiplease`로 통일한다.
-- **로고**: "인식 틀 모서리 + 와이파이 기호, 파란 바탕에 흰 기호"로 골랐지만 아직 앱 아이콘에 적용하지 않았다. 지금 `assets/`의 아이콘은 Expo 기본값이다.
+- **로고**: 사용자가 고른 F안, "손 위의 와이파이"를 사용한다. 검정 `#171717` 바탕과 흰색 심볼이며 원본은 `assets/brand/wifi-please.svg`다. 앱 아이콘, 시작 화면, 앱 내부 브랜드 마크에 동일한 도형을 사용한다. Android 전경과 단색 레이어만 중앙 기준 84%로 축소해 안전 영역을 확보한다. 앱 UI의 블루 포인트 색은 유지한다.
 
 ## Expo는 바뀌었다. 학습 데이터를 믿지 말 것
 
@@ -118,7 +118,7 @@ server/                          독립 Cloudflare Workers 서버
 | `src/app/share.tsx` | 정보·QR·공유 버튼 배치, 정보 없음 처리, 화면 이동 정책 | 공유·복사 SDK 호출 |
 | `src/app/qr.tsx` | QR 확대 화면 구성, 정보 없음 처리, 뒤로 가기 정책 | QR 문자열 규칙, 시스템 공유 구현 |
 | `src/app/password.tsx` | 비밀번호 확대 화면 구성, 빈 정보 처리, 뒤로 가기 정책 | 클립보드 접근, 비밀번호 가공 |
-| `src/components/brand-mark.tsx` | 브랜드 심볼 렌더링 | 앱 상태와 화면 이동 |
+| `src/components/brand-mark.tsx` | 출시 아이콘 이미지를 재사용한 브랜드 마크 표시 | 심볼 도형의 중복 정의, 앱 상태와 화면 이동 |
 | `src/components/ui/button.tsx` | 버튼의 표시·접근성·입력 상태 | 클릭 이후 업무 처리 |
 | `src/components/ui/dialog.tsx` | 안내 팝업과 버튼 렌더링, 표시 계약인 `DialogState` 정의 | 오류 분류, 재시도 정책 결정 |
 | `src/components/ui/icon.tsx` | 공통 아이콘 도형과 크기·색 표현 | 기능 상태 판단 |

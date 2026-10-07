@@ -15,6 +15,21 @@ Cloudflare 계정의 `snapfi.workers.dev` 하위 도메인은 기존 값을 유�
 
 Expo는 새 이름의 프로젝트에 연결했습니다. 이전 프로젝트는 삭제하지 않고 보존하며 새 빌드는 현재 `app.json`의 프로젝트 ID를 사용합니다. 앱 표시 이름, Android 패키지와 딥링크 변경은 새 development build 설치 후 적용됩니다.
 
+## 브랜드 아이콘
+
+검정 `#171717` 바탕에 흰색 손과 와이파이를 조합한 F안을 사용합니다. "와이파이 좀 주세요"와 "와이파이 줄게"를 같은 손짓으로 표현합니다. 앱 UI의 블루 포인트 색은 유지합니다.
+
+- 벡터 원본: `assets/brand/wifi-please.svg`
+- 기본·iOS 아이콘: `assets/images/icon.png`, 1024×1024 불투명 PNG
+- Google Play 등록용: `assets/images/play-store-icon.png`, 512×512 불투명 PNG
+- Android 전경·단색: `assets/images/android-icon-foreground.png`, `android-icon-monochrome.png`, 1024×1024 투명 PNG
+- 시작 화면: `assets/images/splash-icon.png`, 1024×1024 투명 PNG
+- 웹 아이콘: `assets/images/favicon.png`, 48×48 PNG
+
+내보낼 때 원본의 모서리를 자르거나 그림자를 넣지 않습니다. 투명 이미지는 배경 사각형을 제외하고, Android 레이어는 심볼을 중앙 기준 84%로 축소합니다. [Android 적응형 아이콘의 안전 영역](https://developer.android.com/develop/ui/compose/system/icon_design_adaptive)에 맞춰 도형을 배치했습니다. `BrandMark`는 기본 아이콘 이미지를 재사용합니다.
+
+설치 아이콘과 네이티브 시작 화면 변경은 새 빌드에 반영됩니다. 최종 런처 표시와 시작 화면은 실기기에서 확인해야 합니다.
+
 ## 주요 기능
 
 - **카메라로 촬영해서 인식**: 와이파이 안내문을 찍으면 아이디와 비밀번호를 자동으로 읽습니다
@@ -152,4 +167,4 @@ npm run test:watch        # 변경 시 다시 실행
 
 브라우저에서는 가상 카메라와 모의 인식 응답으로 화면 이동과 예외 처리를 검사합니다. 320px와 360px 화면, 긴 비밀번호, 비밀번호 없는 네트워크, 복사 원문 보존도 확인합니다. 이 검사는 Android 네이티브 실행을 대신하지 않습니다.
 
-실기기에서 확인할 항목은 시스템 네트워크 추가/취소, 실제 와이파이 연결, 카카오톡 공유 창 전환, 다른 휴대폰의 QR 인식입니다. Kotlin 모듈의 네이티브 빌드와 실기기 검증은 아직 완료하지 않았습니다. 앱 아이콘은 기존 Expo 기본 아이콘이며 iOS 직접 연결은 지원하지 않습니다.
+실기기에서 확인할 항목은 시스템 네트워크 추가/취소, 실제 와이파이 연결, 카카오톡 공유 창 전환, 다른 휴대폰의 QR 인식입니다. Kotlin 모듈의 네이티브 빌드와 실기기 검증은 아직 완료하지 않았습니다. 출시용 아이콘은 적용했고 iOS 직접 연결은 지원하지 않습니다.
