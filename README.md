@@ -82,7 +82,7 @@ QR 코드 ─────────────→ 앱에서 아이디와 비�
 
 필요한 것
 
-- Node.js 22.12 이상
+- Node.js 22.13 이상
 - Java 17
 - [Android Studio](https://developer.android.com/studio) (Android SDK 포함)
 - Android 11 이상 실기기와 USB 케이블 (에뮬레이터에서는 와이파이 기능을 제대로 테스트할 수 없습니다)
@@ -101,7 +101,19 @@ npx expo run:android
 
 Android Studio 없이 빌드하려면 [EAS Build](https://docs.expo.dev/build/introduction/)를 사용할 수 있습니다.
 
-현재 프로젝트는 [dessert99/wifi-please](https://expo.dev/accounts/dessert99/projects/wifi-please)에 연결되어 있고, `eas.json`에 개발용 설정이 있습니다. 무료 플랜과 남은 빌드 한도를 확인한 뒤 실행합니다.
+현재 프로젝트는 [dessert99/wifi-please](https://expo.dev/accounts/dessert99/projects/wifi-please)에 연결되어 있습니다. 앱 빌드는 `server/`가 아닌 프로젝트 루트에서 실행합니다. 무료 플랜과 남은 빌드 한도를 확인한 뒤 실행합니다.
+
+개발 서버 없이 실기기에서 확인하려면 `preview`로 APK를 만듭니다.
+
+```bash
+npx eas-cli@latest build --profile preview --platform android
+```
+
+프로젝트 대시보드의 Environment variables에 `EXPO_PUBLIC_SCAN_API_URL`을 `Plain text`로 등록합니다. 값은 `https://wifi-please-server.snapfi.workers.dev`이며, 테스트 빌드에는 `preview` 환경을 선택합니다. 다른 환경에서도 같은 서버를 쓰면 해당 환경에도 등록합니다. `eas.json`의 각 프로필은 같은 이름의 환경을 사용합니다. `ANTHROPIC_API_KEY`는 Cloudflare secret에만 두며 EAS나 앱에 넣지 않습니다.
+
+사진 인식은 현재 유료 Claude API를 사용합니다. 무료 운영 방식을 정하기 전에는 QR과 모의 응답으로 검증합니다.
+
+코드를 바꾸면서 개발 서버에 연결할 때는 `development`를 사용합니다.
 
 ```bash
 npx eas-cli@latest login --browser
