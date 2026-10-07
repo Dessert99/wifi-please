@@ -18,7 +18,10 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.snapfi.app"
+      "package": "com.snapfi.app",
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
     },
     "web": {
       "output": "static",
@@ -62,6 +65,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7bee3bb4-8380-4120-adf4-e3fa4b83d006"
+      }
     }
   }
 }
