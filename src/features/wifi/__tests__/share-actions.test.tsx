@@ -7,6 +7,7 @@ import { shareWifiCredentials } from '../services/share-wifi';
 import { useShareActions } from '../use-share-actions';
 import type { WifiCredentials } from '../types';
 
+// 실제 복사 서비스는 유지하고 클립보드 SDK와 나머지 시스템 동작만 대체한다.
 vi.mock('expo-clipboard', () => ({ setStringAsync: vi.fn() }));
 vi.mock('../services/connect-wifi', () => ({ openSystemWifiDialog: vi.fn() }));
 vi.mock('../services/share-wifi', () => ({ shareWifiCredentials: vi.fn() }));
@@ -14,12 +15,14 @@ vi.mock('../services/share-wifi', () => ({ shareWifiCredentials: vi.fn() }));
 const wifi: WifiCredentials = { ssid: 'Cafe', password: ' abC;\\"12 ', security: 'WPA', hidden: false };
 let actions: ReturnType<typeof useShareActions>;
 let renderer: ReactTestRenderer;
+// 공유 훅을 실제 React 수명 주기로 실행하고 최신 상태를 테스트에 노출한다.
 function Harness() {
   const value = useShareActions(wifi);
   React.useLayoutEffect(() => { actions = value; });
   return null;
 }
 
+// 가상 타이머와 정상 응답을 준비해 공유 상태와 토스트 시간을 검증한다.
 beforeEach(async () => {
   vi.useFakeTimers();
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -27,6 +30,7 @@ beforeEach(async () => {
   vi.mocked(shareWifiCredentials).mockResolvedValue({ action: 'sharedAction' });
   await act(async () => { renderer = create(<Harness />); });
 });
+// 훅을 해제하고 가상 타이머·전역 설정을 복원한다.
 afterEach(async () => {
   await act(async () => { renderer.unmount(); });
   vi.useRealTimers();

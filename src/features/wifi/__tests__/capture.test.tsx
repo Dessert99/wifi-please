@@ -39,17 +39,20 @@ let capture: ReturnType<typeof useCapture>;
 let renderer: ReactTestRenderer;
 const remember = vi.fn<ReturnType<typeof useWifiSession>['remember']>();
 const photo = { uri: 'file:///안내문.jpg', width: 100, height: 100 };
+// 안내가 표시됐음을 확인한 뒤 재시도 동작을 검사할 수 있게 반환한다.
 function currentDialog() {
   if (!capture.dialog) throw new Error('오류 안내가 표시되지 않았어요.');
   return capture.dialog;
 }
 
+// 훅을 실제 React 수명 주기로 실행하고 최신 반환값을 테스트에 노출한다.
 function Harness() {
   const value = useCapture();
   React.useLayoutEffect(() => { capture = value; });
   return null;
 }
 
+// 가상 시간과 정상 응답을 준비하고 최초 QR 재인식 대기 시간을 지난다.
 beforeEach(async () => {
   vi.useFakeTimers({ now: 10000 });
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -61,6 +64,7 @@ beforeEach(async () => {
   await act(async () => { renderer = create(<Harness />); });
   vi.advanceTimersByTime(2000);
 });
+// 훅을 해제하고 타이머·전역 설정을 복원해 테스트 간 영향을 막는다.
 afterEach(async () => {
   await act(async () => { renderer.unmount(); });
   vi.useRealTimers();

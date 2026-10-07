@@ -12,6 +12,7 @@ export function WifiSessionProvider({ children }: { children: ReactNode }) {
   return <SessionContext.Provider value={{ wifi, remember }}>{children}</SessionContext.Provider>;
 }
 
+// 공유된 메모리 세션에 접근하고 Provider 누락을 즉시 알린다.
 export function useWifiSession() {
   const session = useContext(SessionContext);
   if (!session) throw new Error('와이파이 세션이 필요해요.');

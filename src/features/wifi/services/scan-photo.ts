@@ -15,16 +15,19 @@ export type ScanResult = {
   password: string | null;
 };
 
+// 화면에서 복구 방법을 선택할 수 있도록 인식 실패 원인을 구분한다.
 export class ScanError extends Error {
   constructor(readonly reason: 'network' | 'rate_limited' | 'server' | 'unreadable') {
     super(`scan failed: ${reason}`);
   }
 }
 
+// 사진을 전송용으로 변환하고 서버 응답을 검증한 뒤 인식 결과만 반환한다.
 export async function scanWifiPhoto(photo: Photo): Promise<ScanResult> {
   const image = await toResizedBase64(photo);
 
   if (!SCAN_API_URL) throw new ScanError('server');
+  // 응답 대기가 30초를 넘으면 요청을 중단한다.
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30000);
   try {
@@ -37,8 +40,10 @@ export async function scanWifiPhoto(photo: Photo): Promise<ScanResult> {
         signal: controller.signal,
       });
     } catch { throw new ScanError('network'); }
+    // 요청 제한과 서버 오류를 구분해 호출자에게 전달한다.
     if (response.status === 429) throw new ScanError('rate_limited');
     if (!response.ok) throw new ScanError('server');
+    // 외부 응답의 필드와 타입을 검사해 잘못된 값을 연결 정보로 사용하지 않는다.
     const result: unknown = await response.json();
     if (!result || typeof result !== 'object' ||
       !('ssid' in result) || !('password' in result) ||

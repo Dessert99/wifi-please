@@ -4,6 +4,7 @@
 
 import type { WifiCredentials } from '../types';
 
+// WIFI 형식의 QR을 읽고 연결에 필요한 필드를 원문대로 복원한다.
 export function parseWifiQr(raw: string): WifiCredentials | null {
   const text = raw.trim();
   if (!/^WIFI:/i.test(text)) return null;
@@ -37,6 +38,7 @@ export function parseWifiQr(raw: string): WifiCredentials | null {
       quoted = false;
       lastWasUnescapedQuote = false;
     } else {
+      // 값 양끝의 감싸는 따옴표와 이스케이프된 실제 따옴표를 구분한다.
       if (value.length === 0) quoted = ch === '"' && !escaped;
       lastWasUnescapedQuote = ch === '"' && !escaped;
       value += ch;
@@ -59,8 +61,10 @@ export function parseWifiQr(raw: string): WifiCredentials | null {
   };
 }
 
+// 구분자와 특수 문자를 이스케이프해 이름·비밀번호 원문을 보존한다.
 const escapeField = (value: string) => value.replace(/[\\;,:\"]/g, '\\$&');
 
+// 보안 방식과 숨김 여부를 포함한 WIFI 형식의 QR 문자열을 생성한다.
 export function createWifiQr(wifi: WifiCredentials) {
   return `WIFI:T:${escapeField(wifi.security)};S:${escapeField(wifi.ssid)};P:${escapeField(wifi.password)};H:${wifi.hidden};;`;
 }

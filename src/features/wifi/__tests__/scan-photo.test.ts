@@ -1,6 +1,7 @@
 import { afterAll, afterEach, expect, it, vi } from 'vitest';
 import { scanWifiPhoto, ScanError } from '../services/scan-photo';
 
+// 이미지 처리 SDK를 대체해 서버 요청과 응답 처리 흐름에 집중한다.
 vi.mock('expo-image-manipulator', () => ({
   SaveFormat: { JPEG: 'jpeg' },
   ImageManipulator: { manipulate: () => ({ resize: vi.fn(), renderAsync: async () => ({ saveAsync: async () => ({ base64: '테스트사진' }) }) }) },
@@ -9,7 +10,9 @@ vi.mock('expo-image-manipulator', () => ({
 // ESM 모듈이 주소를 읽기 전에 테스트 환경변수를 설정한다.
 vi.hoisted(() => { vi.stubEnv('EXPO_PUBLIC_SCAN_API_URL', 'https://snapfi.test'); });
 const photo = { uri: 'file:///test.jpg', width: 2000, height: 1000 };
+// 각 테스트의 fetch 대체와 가상 타이머를 원래 상태로 돌린다.
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
+// 인식 서버 주소에 사용한 테스트 환경변수를 복원한다.
 afterAll(() => { vi.unstubAllEnvs(); });
 
 it('빈 비밀번호와 공백, 대소문자를 그대로 돌려준다', async () => {
