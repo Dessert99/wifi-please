@@ -108,7 +108,7 @@ src/
     use-share-actions.ts 공유, 복사, 재연결 상태와 동작
     components/         와이파이 전용 화면 부품
     lib/                QR 해석과 생성
-    services/           사진 인식 요청, 시스템 연결 및 공유
+    services/           사진 인식 요청, 시스템 연결·공유·복사
     __tests__/          기능별 Vitest 테스트
 server/                 프록시 서버 (Cloudflare Workers, 사진을 Claude에 보내고 결과만 돌려줌)
 modules/
@@ -116,7 +116,7 @@ modules/
 assets/                 앱 아이콘, 스플래시 이미지
 ```
 
-파일 배치와 의존 관계는 [AGENTS.md의 분리 원칙](AGENTS.md#파일-구조와-분리-원칙)을 따릅니다. 훅은 상태와 동작을 반환하고, 표시와 스타일은 컴포넌트가 담당합니다.
+파일 배치와 의존 관계는 [AGENTS.md의 분리 원칙](AGENTS.md#파일-구조와-분리-원칙)을 따릅니다. 훅은 상태와 동작을 반환하고, 표시와 스타일은 컴포넌트가 담당합니다. 각 파일의 역할과 함께 유지하는 이유는 [파일별 책임](AGENTS.md#파일별-책임)에 정리되어 있습니다.
 
 ## 검증
 

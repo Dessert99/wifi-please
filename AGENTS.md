@@ -84,23 +84,95 @@ src/
       scan-photo.ts              사진 처리와 서버 요청
       connect-wifi.ts            시스템 연결 창 호출
       share-wifi.ts              시스템 Share 호출
+      copy-wifi-password.ts      클립보드 복사와 실패 결과 정규화
     __tests__/                   기능별 Vitest 테스트
 modules/wifi-manager/             Expo 로컬 Kotlin 모듈
 server/                          독립 Cloudflare Workers 서버
 ```
 
 - `app/`은 화면 구성과 라우팅을 담당한다. 짧은 화면을 다른 폴더로 옮겨 재수출하는 파일을 만들지 않는다.
-- 공통 UI는 `features/`에 의존하지 않는다. 와이파이 타입이나 동작이 필요한 컴포넌트는 `features/wifi/components/`에 둔다.
+- 공통 UI는 `features/`와 `expo-router`에 의존하지 않는다. 공통 `Screen`의 `onBack`은 필수이며, 이동 대상과 이력이 없을 때의 처리는 사용하는 화면에서 결정한다. 와이파이 타입이나 동작이 필요한 컴포넌트는 `features/wifi/components/`에 둔다.
 - 훅은 상태와 동작을 반환한다. JSX, 토스트 배치, 화면 스타일을 반환하지 않는다. 훅 파일은 `use-*.ts`, 렌더링 컴포넌트는 `.tsx`로 작성한다.
 - 촬영부터 인식과 시스템 연결 창까지의 순서 및 실행 잠금은 `use-capture.ts`가 소유한다. 작업별로 잠금을 나눠 중복 실행을 허용하지 않는다.
 - 카메라 권한과 앱 활성 상태는 `use-camera-lifecycle.ts`가 담당한다. 촬영·인식·연결 결과와 오류 안내는 촬영 흐름에서 처리한다.
 - `types.ts`와 `lib/`는 React, Expo, React Native 런타임과 네이티브 모듈에 의존하지 않는다. 동일한 와이파이 정보를 별도 타입으로 중복 정의하지 않는다.
-- `services/`는 HTTP 또는 시스템 API와의 통신을 담당한다. 화면 이동이나 JSX를 포함하지 않는다. 비밀번호를 저장하거나 로그에 출력하지 않는다.
+- `services/`는 사진 인식 요청과 와이파이 연결·공유·복사의 외부 API 호출을 담당한다. 화면 이동이나 JSX를 포함하지 않는다. 비밀번호를 저장하거나 로그에 출력하지 않는다.
+- 카메라 촬영과 사진 선택은 `use-capture.ts`, 권한과 AppState 구독은 `use-camera-lifecycle.ts`에서 직접 Expo API를 사용한다. 화면 수명과 촬영 잠금에 묶이는 동작이므로 단순 호출을 감싸기 위한 서비스를 추가하지 않는다. 공유 훅은 연결·공유·복사 SDK를 직접 호출하지 않고 각 서비스를 사용한다.
 - 스타일은 사용하는 컴포넌트 파일에 둔다. 공통 색상과 글꼴 스타일만 `theme.ts`에서 공유하며, 여러 컴포넌트의 내부 스타일을 하나의 객체로 내보내지 않는다.
 - 함수마다 파일이나 훅을 만들지 않는다. 함께 바뀌는 로직은 함께 두며, QR 해석과 생성은 같은 파일에 둔다.
 - 테스트는 기능의 `__tests__/`에 두고 `.test.ts` 또는 `.test.tsx`로 작성한다. 구조 변경 시 시스템 창 결과 대기, 취소 후 공유, 중복 실행 차단, QR 원문 보존을 유지한다.
 - 커밋은 기능 변경, 구조 변경, 지침 변경을 구분한다. 구조 변경 커밋에 무관한 디자인이나 기능 추가를 섞지 않는다.
 - 에뮬레이터 설치·실행은 사용자가 명시적으로 요청하기 전까지 하지 않는다.
+
+### 파일별 책임
+
+단일 책임은 파일마다 함수 하나를 두는 규칙이 아니다. 같은 변경 이유와 수명을 가진 코드는 묶고, 시스템 연동·작업 상태·화면 표시가 서로의 내부 구현을 알지 않도록 한다. 파일을 추가하거나 책임을 옮길 때 아래 목록도 갱신한다.
+
+화면과 공통 UI의 경계:
+
+| 파일 | 맡는 일 | 맡지 않는 일 |
+| --- | --- | --- |
+| `src/app/_layout.tsx` | Stack과 앱 전역 세션 Provider 구성 | 인식·공유 작업 실행 |
+| `src/app/index.tsx` | 권한 안내·카메라 화면 조합, 플래시 표시 상태, 사용자 입력 연결 | 서버 통신, 시스템 와이파이 호출 구현 |
+| `src/app/share.tsx` | 정보·QR·공유 버튼 배치, 정보 없음 처리, 화면 이동 정책 | 공유·복사 SDK 호출 |
+| `src/app/qr.tsx` | QR 확대 화면 구성, 정보 없음 처리, 뒤로 가기 정책 | QR 문자열 규칙, 시스템 공유 구현 |
+| `src/app/password.tsx` | 비밀번호 확대 화면 구성, 빈 정보 처리, 뒤로 가기 정책 | 클립보드 접근, 비밀번호 가공 |
+| `src/components/brand-mark.tsx` | 브랜드 심볼 렌더링 | 앱 상태와 화면 이동 |
+| `src/components/ui/button.tsx` | 버튼의 표시·접근성·입력 상태 | 클릭 이후 업무 처리 |
+| `src/components/ui/dialog.tsx` | 안내 팝업과 버튼 렌더링, 표시 계약인 `DialogState` 정의 | 오류 분류, 재시도 정책 결정 |
+| `src/components/ui/icon.tsx` | 공통 아이콘 도형과 크기·색 표현 | 기능 상태 판단 |
+| `src/components/ui/screen.tsx` | 안전 영역·헤더·스크롤·하단 영역 배치, 전달받은 `onBack` 실행 | Router 접근, 이동 대상 결정 |
+| `src/components/ui/toast.tsx` | 전달받은 문구와 위치로 토스트 표시 | 표시 시간·복사 결과 관리 |
+| `src/constants/theme.ts` | 공통 색상과 글꼴 스타일 정의 | 개별 화면 배치와 내부 스타일 |
+
+와이파이 기능의 경계:
+
+| 파일 | 맡는 일 | 맡지 않는 일 |
+| --- | --- | --- |
+| `src/features/wifi/types.ts` | 와이파이 공통 데이터 타입 정의 | SDK 의존, 실행 로직 |
+| `src/features/wifi/session.tsx` | 메모리 세션 Provider와 접근 훅 | 영구 저장, 라우트 파라미터 전달 |
+| `src/features/wifi/use-capture.ts` | 촬영·사진 선택·QR 인식부터 연결·공유 화면 전환까지 조율, 실행 잠금, 오류 안내 상태 | JSX, 서버 통신·네이티브 연결 세부 구현 |
+| `src/features/wifi/use-camera-lifecycle.ts` | 카메라 참조·준비 상태, 권한 요청, 화면 포커스와 AppState 구독·해제 | 사진 인식, 연결 결과 처리, 오류 팝업 렌더링 |
+| `src/features/wifi/use-share-actions.ts` | 공유·복사·재연결 작업의 상태, 중복 실행 방지, 재시도, 토스트 표시 시간 | SDK 직접 호출, JSX·배치 |
+| `src/features/wifi/components/camera-permission.tsx` | 최초 권한·거부 상태에 맞는 안내와 버튼 표시 | 권한 요청·설정 앱 열기 실행 |
+| `src/features/wifi/components/scan-frame.tsx` | 카메라 인식 틀 표시 | QR 인식과 촬영 실행 |
+| `src/features/wifi/components/shutter-button.tsx` | 촬영 버튼 표시·입력 상태 | 카메라 접근 |
+| `src/features/wifi/components/wifi-qr.tsx` | 와이파이 정보를 QR 이미지로 렌더링, 크기·여백 결정 | QR 형식 규칙, 네트워크 연결 |
+| `src/features/wifi/components/share-feedback.tsx` | 공유 훅의 상태를 팝업·토스트로 표시하고 위치 결정 | 공유 실행, 오류 상태와 타이머 관리 |
+| `src/features/wifi/lib/wifi-qr.ts` | 동일한 WIFI 형식의 해석·생성·이스케이프 처리 | React, Expo, 네트워크와 기기 접근 |
+| `src/features/wifi/services/scan-photo.ts` | 인식 요청에 필요한 사진 축소·인코딩, HTTP 요청, 제한시간·응답 검사 | 사용자 안내 문구와 화면 이동 |
+| `src/features/wifi/services/connect-wifi.ts` | 플랫폼 지원 확인과 네이티브 연결 결과 전달 | 공유 화면 전환, 실제 인터넷 연결 성공 판정 |
+| `src/features/wifi/services/share-wifi.ts` | 시스템 공유용 텍스트 구성과 Share API 호출 | 공유 완료 UI, 수신 앱·대화방 선택 |
+| `src/features/wifi/services/copy-wifi-password.ts` | 비밀번호 원문 복사, 플랫폼의 실패 반환값을 오류로 정규화 | 토스트·재시도·표시 시간 관리 |
+
+검증과 서버·네이티브 경계:
+
+| 파일 | 맡는 일 |
+| --- | --- |
+| `src/features/wifi/__tests__/capture.test.tsx` | 연결 결과 대기·취소·실패 복구, 중복 입력, 앱 복귀 후 QR 억제 검증 |
+| `src/features/wifi/__tests__/share-actions.test.tsx` | 공유·복사 작업 상태와 실제 복사 서비스 조합 검증, 외부 SDK만 대체 |
+| `src/features/wifi/__tests__/scan-photo.test.ts` | 인식 응답·네트워크 실패·요청 제한·시간 초과 검증 |
+| `src/features/wifi/__tests__/parse-wifi-qr.test.ts` | 외부 WIFI 문자열 해석 규칙 검증 |
+| `src/features/wifi/__tests__/wifi-qr.test.ts` | 생성과 해석을 왕복했을 때 원문과 보안 정보 보존 검증 |
+| `modules/wifi-manager/index.ts` | Expo 네이티브 모듈 탐색과 TypeScript 호출 계약 |
+| `modules/wifi-manager/expo-module.config.json` | Android 네이티브 모듈 등록 |
+| `modules/wifi-manager/android/build.gradle` | 로컬 모듈의 빌드 설정 |
+| `modules/wifi-manager/android/src/main/AndroidManifest.xml` | 로컬 모듈의 Android 선언 |
+| `modules/wifi-manager/android/src/main/java/expo/modules/wifimanager/WifiManagerModule.kt` | 시스템 연결 창 실행, 결과 해석, 대기 Promise 수명 관리 |
+| `server/src/index.ts` | 단일 `/scan` 엔드포인트의 요청 검증·제한과 AI 호출·응답 처리 |
+| `vitest.config.mts` | 테스트 환경·대상·경로 별칭 설정 |
+| `eslint.config.js` | 코드 검사와 공통 UI·공유 훅의 정적 import 경계 검사 |
+
+공통 UI의 Router·기능 의존과 공유 훅의 직접 SDK import는 ESLint에서 오류로 처리한다. 이 검사는 정적 import 경계를 확인하며, 그 밖의 책임 분리는 위 표를 기준으로 리뷰한다.
+
+### 함께 유지하는 코드
+
+- QR 해석과 생성은 같은 WIFI 규격과 이스케이프 규칙에 따라 바뀌므로 `lib/wifi-qr.ts`에 함께 둔다.
+- 세션 Provider와 접근 훅은 하나의 Context 수명을 공유하므로 `session.tsx`에 함께 둔다.
+- 카메라 권한·참조·AppState·포커스는 카메라 사용 가능 여부를 함께 결정하므로 `use-camera-lifecycle.ts`에 함께 둔다.
+- 공유·복사·재연결 작업은 같은 화면의 피드백과 공유/재연결 잠금을 조율하므로 `use-share-actions.ts`에 함께 둔다. SDK 구현은 서비스로 분리한다.
+- 사진 축소·인코딩·전송·응답 검사는 하나의 사진 인식 요청 계약을 구현하므로 `services/scan-photo.ts`에 함께 둔다. 별도로 재사용할 요구가 생기기 전까지 나누지 않는다.
+- 각 컴포넌트의 props 타입과 스타일은 해당 컴포넌트에 둔다. 공통 도형인 `Icon`과 `FlashIcon`도 같은 아이콘 파일에 둔다.
 
 ## EAS로 빌드하기
 
