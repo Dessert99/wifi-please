@@ -1,21 +1,16 @@
-import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
+import type { BarcodeScanningResult } from 'expo-camera';
 import { launchImageLibraryAsync } from 'expo-image-picker';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Linking } from 'react-native';
 import type { DialogState } from '@/components/ui/dialog';
 import { parseWifiQr } from '@/features/wifi/lib/wifi-qr';
 import { ScanError, scanWifiPhoto, type Photo } from '@/features/wifi/services/scan-photo';
 import { openSystemWifiDialog } from '@/features/wifi/services/connect-wifi';
 import type { WifiCredentials } from '@/features/wifi/types';
 import { useWifiSession } from './session';
+import { useCameraLifecycle } from './use-camera-lifecycle';
 
 export function useCapture() {
-  const [permission, requestPermission, getPermission] = useCameraPermissions();
-  const cameraRef = useRef<CameraView>(null);
-  const [ready, setReady] = useState(false);
-  const [focused, setFocused] = useState(false);
-  const [active, setActive] = useState(AppState.currentState === 'active');
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState<'idle' | 'photo' | 'connecting'>('idle');
   const [dialog, setDialog] = useState<DialogState | null>(null);
@@ -23,28 +18,15 @@ export function useCapture() {
   const mounted = useRef(true);
   const cooldown = useRef(0);
   const { wifi, remember } = useWifiSession();
+  const postponeQr = useCallback(() => { cooldown.current = Date.now() + 1500; }, []);
+  const { permission, cameraRef, ready, setReady, cameraActive, requestAccess } = useCameraLifecycle(postponeQr);
 
   useEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; };
   }, []);
-  useFocusEffect(useCallback(() => {
-    setFocused(true);
-    cooldown.current = Date.now() + 1500;
-    return () => { setFocused(false); setReady(false); };
-  }, []));
-  useEffect(() => {
-    const listener = AppState.addEventListener('change', (state) => {
-      setActive(state === 'active');
-      if (state === 'active') {
-        cooldown.current = Date.now() + 1500;
-        void getPermission();
-      } else setReady(false);
-    });
-    return () => listener.remove();
-  }, [getPermission]);
 
-  function closeDialog() { setDialog(null); cooldown.current = Date.now() + 1500; }
+  function closeDialog() { setDialog(null); postponeQr(); }
   function showInfo() { closeDialog(); router.push('/share'); }
   async function run(action: () => Promise<void>) {
     if (locked.current) return;
@@ -52,7 +34,7 @@ export function useCapture() {
     try { await action(); }
     finally {
       locked.current = false;
-      if (mounted.current) { setBusy(false); setStage('idle'); cooldown.current = Date.now() + 1500; }
+      if (mounted.current) { setBusy(false); setStage('idle'); postponeQr(); }
     }
   }
   async function connect(result: WifiCredentials) {
@@ -108,7 +90,7 @@ export function useCapture() {
     });
   }
   function onBarcodeScanned({ data }: BarcodeScanningResult) {
-    if (!focused || !active || locked.current || dialog || Date.now() < cooldown.current) return;
+    if (!cameraActive || locked.current || dialog || Date.now() < cooldown.current) return;
     const result = parseWifiQr(data);
     if (!result) return;
     void run(() => connect(result));
@@ -119,11 +101,10 @@ export function useCapture() {
   }
   async function allowCamera() {
     try {
-      if (permission?.canAskAgain) await requestPermission();
-      else await Linking.openSettings();
+      await requestAccess();
     } catch {
       setDialog({ title: '설정을 열지 못했어요', message: '기기 설정에서 Snapfi의 카메라 권한을 허용해 주세요.', primary: '닫기', onPrimary: closeDialog });
     }
   }
-  return { permission, cameraRef, ready, setReady, cameraError, cameraActive: focused && active, busy, stage, dialog, closeDialog, pickPhoto, takePhoto, onBarcodeScanned, allowCamera, wifi, showInfo };
+  return { permission, cameraRef, ready, setReady, cameraError, cameraActive, busy, stage, dialog, closeDialog, pickPhoto, takePhoto, onBarcodeScanned, allowCamera, wifi, showInfo };
 }

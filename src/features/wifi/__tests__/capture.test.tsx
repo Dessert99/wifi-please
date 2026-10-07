@@ -132,3 +132,30 @@ it('사진 선택 취소는 연결이나 오류를 만들지 않는다', async (
   expect(capture.dialog).toBeNull();
   expect(capture.busy).toBe(false);
 });
+
+it('앱이 비활성화되면 카메라를 멈추고 복귀 직후에는 QR 재인식을 잠시 막는다', async () => {
+  const onStateChange = vi.mocked(AppState.addEventListener).mock.calls[0]?.[1];
+  if (!onStateChange) throw new Error('앱 상태 구독이 등록되지 않았어요.');
+  const qr: Parameters<typeof capture.onBarcodeScanned>[0] = {
+    type: 'qr',
+    data: 'WIFI:S:Cafe;P:12345678;T:WPA;;',
+    cornerPoints: [],
+    bounds: { origin: { x: 0, y: 0 }, size: { width: 100, height: 100 } },
+  };
+
+  await act(async () => { capture.setReady(true); });
+  expect(capture.cameraActive).toBe(true);
+  await act(async () => { onStateChange('background'); });
+  expect(capture.cameraActive).toBe(false);
+  expect(capture.ready).toBe(false);
+  await act(async () => { capture.onBarcodeScanned(qr); });
+  expect(openSystemWifiDialog).not.toHaveBeenCalled();
+
+  await act(async () => { onStateChange('active'); });
+  expect(capture.cameraActive).toBe(true);
+  await act(async () => { capture.onBarcodeScanned(qr); });
+  expect(openSystemWifiDialog).not.toHaveBeenCalled();
+  await act(async () => { vi.advanceTimersByTime(1500); capture.onBarcodeScanned(qr); });
+  expect(openSystemWifiDialog).toHaveBeenCalledTimes(1);
+  expect(AppState.addEventListener).toHaveBeenCalledTimes(1);
+});

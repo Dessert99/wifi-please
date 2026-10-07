@@ -97,10 +97,15 @@ src/
     qr.tsx              QR 확대
     password.tsx        비밀번호 확대
   components/           앱 공통 UI
+    brand-mark.tsx      브랜드 심볼
+    ui/                 버튼, 팝업, 아이콘, 화면 틀, 토스트
   constants/            공통 색상과 글꼴 스타일
   features/wifi/        와이파이 기능
     types.ts            공통 와이파이 타입
     session.tsx          메모리 세션
+    use-capture.ts       촬영, 인식, 연결 순서와 중복 실행 제어
+    use-camera-lifecycle.ts  권한, 화면 포커스, 앱 활성 상태
+    use-share-actions.ts 공유, 복사, 재연결 상태와 동작
     components/         와이파이 전용 화면 부품
     lib/                QR 해석과 생성
     services/           사진 인식 요청, 시스템 연결 및 공유
@@ -110,6 +115,8 @@ modules/
   wifi-manager/         Android 와이파이 연결 네이티브 코드 (Kotlin)
 assets/                 앱 아이콘, 스플래시 이미지
 ```
+
+파일 배치와 의존 관계는 [AGENTS.md의 분리 원칙](AGENTS.md#파일-구조와-분리-원칙)을 따릅니다. 훅은 상태와 동작을 반환하고, 표시와 스타일은 컴포넌트가 담당합니다.
 
 ## 검증
 
