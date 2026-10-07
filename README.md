@@ -73,8 +73,14 @@ npx expo run:android
 
 Android Studio 없이 빌드하려면 [EAS Build](https://docs.expo.dev/build/introduction/)를 사용할 수 있습니다.
 
+현재 프로젝트는 `dessert99/wifi-connect`에 연결되어 있고, `eas.json`에 개발용 설정이 있습니다. 무료 플랜과 남은 빌드 한도를 확인한 뒤 실행합니다.
+
 ```bash
+npx eas-cli@latest login --browser
 npx eas-cli@latest build --profile development --platform android
+
+# 완성된 APK를 휴대폰에 설치한 뒤 개발 서버 실행
+npx expo start --dev-client
 ```
 
 ## 자주 쓰는 명령어

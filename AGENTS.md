@@ -177,6 +177,9 @@ server/                          독립 Cloudflare Workers 서버
 
 ## EAS로 빌드하기
 
+- 사용자는 무료만 사용한다. 클라우드 빌드 전에 계정의 Free 플랜과 남은 무료 빌드 한도를 확인한다. 유료 플랜 전환이나 추가 과금이 필요한 작업은 실행하지 않는다. 한도가 소진되면 초기화를 기다리거나 로컬 빌드를 사용한다.
+- 사진 인식의 Claude API는 별도 유료 서비스다. 무료 조건에 맞는 인식 방식을 결정하기 전에는 실제 API 요청을 보내는 검증을 실행하지 않고 QR과 모의 응답으로 검증한다.
+
 EAS를 사용하면 앱 빌드, 서명, 스토어 제출을 클라우드에서 할 수 있고(`eas build`, `eas submit`), OTA 업데이트도 배포할 수 있다(`eas update`). 로컬에 Xcode나 Android Studio가 없어도 된다. EAS CLI는 `npx eas-cli@latest <command>`로 실행하고, 문서 예제의 `eas`를 이것으로 바꿔서 사용한다.
 문서: https://docs.expo.dev/eas/index.md
 
