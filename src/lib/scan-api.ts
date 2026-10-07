@@ -16,7 +16,7 @@ export type ScanResult = {
 };
 
 export class ScanError extends Error {
-  constructor(readonly reason: 'network' | 'rate_limited' | 'server') {
+  constructor(readonly reason: 'network' | 'rate_limited' | 'server' | 'unreadable') {
     super(`scan failed: ${reason}`);
   }
 }
@@ -24,20 +24,30 @@ export class ScanError extends Error {
 export async function scanWifiPhoto(photo: Photo): Promise<ScanResult> {
   const image = await toResizedBase64(photo);
 
-  let response: Response;
+  if (!SCAN_API_URL) throw new ScanError('server');
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
   try {
-    response = await fetch(`${SCAN_API_URL}/scan`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image, mediaType: 'image/jpeg' }),
-    });
-  } catch {
-    throw new ScanError('network');
-  }
-
-  if (response.status === 429) throw new ScanError('rate_limited');
-  if (!response.ok) throw new ScanError('server');
-  return (await response.json()) as ScanResult;
+    let response: Response;
+    try {
+      response = await fetch(`${SCAN_API_URL}/scan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image, mediaType: 'image/jpeg' }),
+        signal: controller.signal,
+      });
+    } catch { throw new ScanError('network'); }
+    if (response.status === 429) throw new ScanError('rate_limited');
+    if (!response.ok) throw new ScanError('server');
+    const result: unknown = await response.json();
+    if (!result || typeof result !== 'object' ||
+      !('ssid' in result) || !('password' in result) ||
+      (result.ssid !== null && typeof result.ssid !== 'string') ||
+      (result.password !== null && typeof result.password !== 'string')) {
+      throw new ScanError('server');
+    }
+    return { ssid: result.ssid, password: result.password };
+  } finally { clearTimeout(timeout); }
 }
 
 // 사진을 긴 쪽 1024px JPEG로 줄이고 base64 문자열로 바꾼다.

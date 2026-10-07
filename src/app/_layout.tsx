@@ -1,5 +1,11 @@
 import { Stack } from 'expo-router';
+import { WifiSessionProvider } from '@/features/wifi/session';
+import { colors } from '@/constants/theme';
 
 export default function RootLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <WifiSessionProvider>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }} />
+    </WifiSessionProvider>
+  );
 }

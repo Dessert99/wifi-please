@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { parseWifiQr } from '../parse-wifi-qr';
 
 describe('parseWifiQr', () => {

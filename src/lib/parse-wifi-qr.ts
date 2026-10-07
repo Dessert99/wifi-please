@@ -20,6 +20,8 @@ export function parseWifiQr(raw: string): WifiQr | null {
   let key = '';
   let value = '';
   let readingKey = true;
+  let quoted = false;
+  let lastWasUnescapedQuote = false;
 
   // "WIFI:" 다음 글자부터 한 글자씩 읽는다.
   for (let i = 5; i < text.length; i++) {
@@ -35,22 +37,26 @@ export function parseWifiQr(raw: string): WifiQr | null {
       else key += ch;
     } else if (!escaped && ch === ';') {
       // 값을 읽는 중: ';' 를 만나면 한 필드가 끝난다.
-      fields[key.toUpperCase()] = value;
+      fields[key.toUpperCase()] = quoted && lastWasUnescapedQuote ? value.slice(1, -1) : value;
       key = '';
       value = '';
       readingKey = true;
+      quoted = false;
+      lastWasUnescapedQuote = false;
     } else {
+      if (value.length === 0) quoted = ch === '"' && !escaped;
+      lastWasUnescapedQuote = ch === '"' && !escaped;
       value += ch;
     }
   }
   // 마지막 ';' 가 빠진 QR도 읽을 수 있게 남은 값을 저장한다.
-  if (!readingKey && key) fields[key.toUpperCase()] = value;
+  if (!readingKey && key) fields[key.toUpperCase()] = quoted && lastWasUnescapedQuote ? value.slice(1, -1) : value;
 
   // 와이파이 이름이 없으면 연결할 수 없으니 실패로 본다.
-  const ssid = unquote(fields.S ?? '');
+  const ssid = fields.S ?? '';
   if (!ssid) return null;
 
-  const password = unquote(fields.P ?? '');
+  const password = fields.P ?? '';
   return {
     ssid,
     password,
@@ -58,9 +64,4 @@ export function parseWifiQr(raw: string): WifiQr | null {
     security: fields.T || (password ? 'WPA' : 'nopass'),
     hidden: fields.H?.toLowerCase() === 'true',
   };
-}
-
-// 일부 QR은 값을 "..." 로 감싸서 만든다.
-function unquote(value: string) {
-  return /^".*"$/.test(value) && value.length >= 2 ? value.slice(1, -1) : value;
 }
