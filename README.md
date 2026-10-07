@@ -1,6 +1,19 @@
-# Snapfi
+# WiFi Please
 
 식당이나 카페의 와이파이 안내문을 찍으면 바로 연결해 주는 앱
+
+## 앱 이름과 식별자
+
+- 앱 표시 이름: `WiFi Please`
+- Expo slug와 앱 패키지 이름: `wifi-please`
+- Android 패키지: `com.wifiplease.app`
+- 딥링크 스킴: `wifiplease`
+- Cloudflare Worker: `wifi-please-server`
+- 사진 인식 서버 주소: `.env`의 `EXPO_PUBLIC_SCAN_API_URL`
+
+Cloudflare 계정의 `snapfi.workers.dev` 하위 도메인은 기존 값을 유지합니다. 공개 API에서 변경 요청이 거절되어 Worker 이름만 변경했고, 서버 주소는 `https://wifi-please-server.snapfi.workers.dev`입니다. 계정 하위 도메인을 대시보드에서 변경하면 `.env`도 실제 주소에 맞춰 갱신해야 합니다.
+
+Expo는 새 이름의 프로젝트에 연결했습니다. 이전 프로젝트는 삭제하지 않고 보존하며 새 빌드는 현재 `app.json`의 프로젝트 ID를 사용합니다. 앱 표시 이름, Android 패키지와 딥링크 변경은 새 development build 설치 후 적용됩니다.
 
 ## 주요 기능
 
@@ -73,7 +86,7 @@ npx expo run:android
 
 Android Studio 없이 빌드하려면 [EAS Build](https://docs.expo.dev/build/introduction/)를 사용할 수 있습니다.
 
-현재 프로젝트는 `dessert99/wifi-connect`에 연결되어 있고, `eas.json`에 개발용 설정이 있습니다. 무료 플랜과 남은 빌드 한도를 확인한 뒤 실행합니다.
+현재 프로젝트는 [dessert99/wifi-please](https://expo.dev/accounts/dessert99/projects/wifi-please)에 연결되어 있고, `eas.json`에 개발용 설정이 있습니다. 무료 플랜과 남은 빌드 한도를 확인한 뒤 실행합니다.
 
 ```bash
 npx eas-cli@latest login --browser
