@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 import { colors } from '@/constants/theme';
 import { Icon, type IconName } from './icon';
 
+// 버튼 종류와 입력 상태에 맞는 표시·접근성을 적용하고 클릭을 전달한다.
 export function Button({ title, onPress, secondary, quiet, disabled, icon }: {
   title: string; onPress: () => void; secondary?: boolean; quiet?: boolean; disabled?: boolean; icon?: IconName;
 }) {

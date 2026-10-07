@@ -11,11 +11,13 @@ import { colors } from '@/constants/theme';
 import { CameraPermission } from '@/features/wifi/components/camera-permission';
 import { useCapture } from '@/features/wifi/use-capture';
 
+// 카메라 권한과 촬영 상태에 맞춰 화면을 구성하고 사용자 입력을 촬영 훅에 연결한다.
 export default function CaptureScreen() {
   const insets = useSafeAreaInsets();
   const { cameraRef, ...capture } = useCapture();
   const [flash, setFlash] = useState(false);
   const { permission, busy } = capture;
+  // 권한 확인이 끝나기 전에는 카메라 대신 로딩 상태를 표시한다.
   if (!permission) return <View style={[styles.screen, { justifyContent: 'center' }]}><ActivityIndicator color={colors.accent} /></View>;
   return <View style={[styles.container, { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 12), backgroundColor: permission.granted ? colors.camera : colors.background }]}>
     <StatusBar style={permission.granted ? 'light' : 'dark'} />

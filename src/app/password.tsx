@@ -7,11 +7,15 @@ import { colors, typography } from '@/constants/theme';
 import { useWifiSession } from '@/features/wifi/session';
 import { useShareActions } from '@/features/wifi/use-share-actions';
 
+// 노트북에서 입력하기 쉽도록 비밀번호를 확대하고 복사·공유 동작을 제공한다.
 export default function PasswordScreen() {
   const { wifi } = useWifiSession();
   const actions = useShareActions(wifi);
+  // 메모리 세션이 비어 있으면 촬영 화면부터 시작한다.
   if (!wifi) return <Redirect href="/" />;
+  // 비밀번호가 없는 네트워크는 공유 화면에서 안내한다.
   if (!wifi.password) return <Redirect href="/share" />;
+  // 이전 화면이 있으면 돌아가고, 직접 진입했다면 촬영 화면으로 이동한다.
   function goBack() {
     if (router.canGoBack()) router.back();
     else router.replace('/');

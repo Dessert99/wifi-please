@@ -8,6 +8,7 @@ type ShareFeedbackProps = {
   onClose: () => void;
 };
 
+// 공유 오류 안내와 복사 토스트를 표시하고 안전 영역을 반영해 위치를 정한다.
 export function ShareFeedback({ dialog, copied, onClose }: ShareFeedbackProps) {
   const insets = useSafeAreaInsets();
   return (

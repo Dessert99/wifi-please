@@ -9,10 +9,13 @@ import { colors, typography } from '@/constants/theme';
 import { useWifiSession } from '@/features/wifi/session';
 import { useShareActions } from '@/features/wifi/use-share-actions';
 
+// 다른 휴대폰이 읽을 수 있도록 와이파이 QR을 확대해 표시한다.
 export default function QrScreen() {
   const { wifi } = useWifiSession();
   const actions = useShareActions(wifi);
+  // 메모리 세션이 비어 있으면 촬영 화면부터 시작한다.
   if (!wifi) return <Redirect href="/" />;
+  // 이전 화면이 있으면 돌아가고, 직접 진입했다면 촬영 화면으로 이동한다.
   function goBack() {
     if (router.canGoBack()) router.back();
     else router.replace('/');

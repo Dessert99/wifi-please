@@ -3,6 +3,7 @@ import QRCode from 'react-native-qrcode-svg';
 import type { WifiCredentials } from '@/features/wifi/types';
 import { createWifiQr } from '@/features/wifi/lib/wifi-qr';
 
+// 화면 너비에 맞춰 크기를 제한하고 스캔에 필요한 여백을 둔 QR을 표시한다.
 export function WifiQr({ wifi, large = false }: { wifi: WifiCredentials; large?: boolean }) {
   const { width } = useWindowDimensions();
   const size = Math.min(large ? 246 : 172, width - 136);

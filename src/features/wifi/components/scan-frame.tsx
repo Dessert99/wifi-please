@@ -5,6 +5,7 @@ import { colors } from '@/constants/theme';
 const CORNER = 28;
 const STROKE = 3.5;
 
+// 촬영 위치를 안내하는 네 모서리를 그리되 터치는 가로채지 않는다.
 export function ScanFrame({ width = 226, height = 150 }: { width?: number; height?: number }) {
   return (
     <View style={[styles.frame, { width, height }]}>

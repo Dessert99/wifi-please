@@ -7,6 +7,7 @@ export type DialogState = {
   title: string; message: string; primary: string; onPrimary: () => void;
   secondary?: string; onSecondary?: () => void;
 };
+// 전달받은 안내와 동작을 표시하며 보조 동작이 없으면 닫기 콜백을 사용한다.
 export function Dialog({ value, onClose }: { value: DialogState | null; onClose: () => void }) {
   if (!value) return null;
   return <Modal visible transparent animationType="fade" onRequestClose={onClose}>

@@ -9,11 +9,14 @@ import { colors, typography } from '@/constants/theme';
 import { useWifiSession } from '@/features/wifi/session';
 import { useShareActions } from '@/features/wifi/use-share-actions';
 
+// 최근 와이파이의 QR·비밀번호와 공유·재연결 동작을 한 화면에 배치한다.
 export default function ShareScreen() {
   const { wifi } = useWifiSession();
   const actions = useShareActions(wifi);
+  // 메모리 세션이 비어 있으면 촬영 화면부터 시작한다.
   if (!wifi) return <Redirect href="/" />;
   const secured = wifi.password !== '';
+  // 이전 화면이 있으면 돌아가고, 직접 진입했다면 촬영 화면으로 이동한다.
   function goBack() {
     if (router.canGoBack()) router.back();
     else router.replace('/');

@@ -2,6 +2,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { colors } from '@/constants/theme';
 
 export type IconName = 'back' | 'copy' | 'share' | 'photo' | 'wifi' | 'alert' | 'check' | 'qr';
+// 아이콘 이름에 해당하는 도형을 공통 크기와 색상 규칙으로 그린다.
 export function Icon({ name, size = 24, color = colors.text }: { name: IconName; size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
@@ -23,6 +24,7 @@ type IconProps = {
   color: string;
 };
 
+// 플래시 버튼에서 사용하는 번개 도형을 지정한 크기와 색상으로 그린다.
 export function FlashIcon({ size = 20, color }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round">

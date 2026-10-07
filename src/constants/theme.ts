@@ -1,5 +1,6 @@
 import type { TextStyle } from 'react-native';
 
+// 화면과 공통 컴포넌트가 사용하는 의미별 색상을 정의한다.
 export const colors = {
   accent: '#1A73E8',
   accentTint: 'rgba(26, 115, 232, 0.14)',
@@ -13,6 +14,7 @@ export const colors = {
   onAccent: '#FFFFFF',
 };
 
+// 화면 제목·설명·라벨에 공통으로 적용할 글꼴 스타일을 정의한다.
 export const typography = {
   title: { fontSize: 25, lineHeight: 34, fontWeight: '800', letterSpacing: -.8, color: colors.text },
   description: { fontSize: 14, lineHeight: 23, color: colors.textSub },

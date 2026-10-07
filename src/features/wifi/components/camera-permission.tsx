@@ -10,6 +10,7 @@ type CameraPermissionProps = {
   onPickPhoto: () => void;
 };
 
+// 권한 재요청 가능 여부에 맞는 안내와 사진 선택 대안을 표시한다.
 export function CameraPermission({ canAskAgain, busy, onAllow, onPickPhoto }: CameraPermissionProps) {
   const denied = !canAskAgain;
   return (

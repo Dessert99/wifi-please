@@ -12,6 +12,7 @@ type ScreenProps = {
   onBack: () => void;
 };
 
+// 안전 영역·헤더·본문·하단 버튼을 배치하고 뒤로 가기는 화면의 콜백에 맡긴다.
 export function Screen({ title, children, footer, onBack }: ScreenProps) {
   const insets = useSafeAreaInsets();
   return <View style={[styles.screen, { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 12) }]}>

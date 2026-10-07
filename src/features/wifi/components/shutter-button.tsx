@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { colors } from '@/constants/theme';
 
+// 촬영 가능 여부와 누름 상태를 표시하고 촬영 입력을 전달한다.
 export function ShutterButton({ onPress, disabled }: { onPress: () => void; disabled?: boolean }) {
   return (
     <Pressable

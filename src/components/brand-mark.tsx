@@ -3,6 +3,7 @@ import Svg, { Path } from 'react-native-svg';
 import { colors } from '@/constants/theme';
 import { Icon } from './ui/icon';
 
+// 인식 틀과 와이파이 도형을 조합해 브랜드 심볼을 그린다.
 export function BrandMark() {
   return <View style={styles.brandMark}>
     <Svg width={72} height={72} viewBox="0 0 72 72" style={{ position: 'absolute', left: 16, top: 16 }}>
