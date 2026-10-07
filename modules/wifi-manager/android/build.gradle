@@ -6,5 +6,10 @@ group = 'expo.modules.wifimanager'
 version = '1.0.0'
 android {
   namespace 'expo.modules.wifimanager'
-  defaultConfig { minSdkVersion 30 }
+  defaultConfig {
+    minSdkVersion 30
+    // Expo 모듈 배포 설정이 참조하는 Android 버전을 명시한다.
+    versionCode 1
+    versionName '1.0.0'
+  }
 }
