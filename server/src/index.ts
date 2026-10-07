@@ -27,11 +27,11 @@ const WifiResult = z.object({
 	password: z.string().nullable(),
 });
 
-const PROMPT = `This photo shows a Wi-Fi notice from a restaurant or cafe.
-Extract the Wi-Fi network name (SSID) and password exactly as written, keeping case, symbols, and spacing.
-- If several networks are listed, pick the first one meant for customers.
-- If the notice says there is no password, return an empty string for password.
-- If a value is not visible or you are not sure, return null for it. Do not guess.`;
+const PROMPT = `식당이나 카페의 와이파이 안내문에서 네트워크 이름(SSID)과 비밀번호를 추출하세요.
+대소문자, 기호, 공백을 안내문에 적힌 그대로 보존하세요.
+- 여러 네트워크가 있고 사용할 네트워크 하나를 명확히 정할 수 없다면 두 값 모두 null을 반환하세요.
+- 비밀번호가 없다고 명시된 경우에만 password를 빈 문자열로 반환하세요.
+- 보이지 않거나 확신할 수 없는 값은 null을 반환하고 추측하지 마세요.`;
 
 export default {
 	async fetch(request, env): Promise<Response> {
