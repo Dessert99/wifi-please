@@ -10,17 +10,21 @@ import expo.modules.kotlin.functions.Queues
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
+// 시스템 와이파이 창 실행과 결과를 기다리는 Promise의 수명을 관리한다.
 class WifiManagerModule : Module() {
   private var pending: Promise? = null
   private val requestCode = 49107
 
+  // JavaScript 호출을 네이티브 동작과 연결하고 결과·종료 이벤트를 등록한다.
   override fun definition() = ModuleDefinition {
     Name("WifiManager")
     AsyncFunction("openSystemWifiDialog") { ssid: String, password: String, security: String, hidden: Boolean, promise: Promise ->
+      // 이미 결과를 기다리는 연결 요청이 있으면 중복 실행을 거절한다.
       if (pending != null) {
         promise.reject("ERR_BUSY", "이미 연결 창이 열려 있어요.", null)
         return@AsyncFunction
       }
+      // 시스템 창을 열 수 있는 Android 버전과 현재 Activity를 확인한다.
       val activity = appContext.currentActivity
       if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || activity == null) {
         promise.reject("ERR_UNAVAILABLE", "Android 11 이상에서 연결할 수 있어요.", null)
@@ -28,6 +32,7 @@ class WifiManagerModule : Module() {
       }
       try {
         val builder = WifiNetworkSuggestion.Builder().setSsid(ssid).setIsHiddenSsid(hidden)
+        // 전달받은 보안 방식에 맞는 설정을 구성하고 미지원 방식은 거절한다.
         when (security.uppercase()) {
           "NOPASS" -> { }
           "WPA", "WPA2" -> builder.setWpa2Passphrase(password)
@@ -37,17 +42,21 @@ class WifiManagerModule : Module() {
             return@AsyncFunction
           }
         }
+        // 네트워크 추가를 사용자가 확인할 수 있도록 시스템 창에 후보를 전달한다.
         val intent = Intent(Settings.ACTION_WIFI_ADD_NETWORKS).apply {
           putParcelableArrayListExtra(Settings.EXTRA_WIFI_NETWORK_LIST, arrayListOf(builder.build()))
         }
+        // 결과 이벤트가 도착할 때까지 요청을 보관한 뒤 메인 큐에서 시스템 창을 연다.
         pending = promise
         activity.startActivityForResult(intent, requestCode)
       } catch (error: Exception) {
+        // 창 실행에 실패하면 대기 요청을 비우고 호출자에게 오류를 전달한다.
         pending = null
         promise.reject("ERR_WIFI_DIALOG", "시스템 연결 창을 열지 못했어요.", error)
       }
     }.runOnQueue(Queues.MAIN)
 
+    // 이 모듈의 요청 결과만 처리하고 취소도 정상적인 종료 결과로 반환한다.
     OnActivityResult { _, result ->
       if (result.requestCode == requestCode) {
         val promise = pending
@@ -66,6 +75,7 @@ class WifiManagerModule : Module() {
         }
       }
     }
+    // 모듈이 종료되면 남은 요청을 거절해 Promise가 계속 대기하지 않게 한다.
     OnDestroy {
       pending?.reject("ERR_DESTROYED", "연결 요청이 종료되었어요.", null)
       pending = null

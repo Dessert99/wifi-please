@@ -34,6 +34,7 @@ const PROMPT = `식당이나 카페의 와이파이 안내문에서 네트워크
 - 보이지 않거나 확신할 수 없는 값은 null을 반환하고 추측하지 마세요.`;
 
 export default {
+	// 사진 인식 요청을 검증한 뒤 AI에 전달하고 앱이 사용할 결과만 반환한다.
 	async fetch(request, env): Promise<Response> {
 		const url = new URL(request.url);
 		if (url.pathname !== '/scan') return json({ error: 'not_found' }, 404);
@@ -82,6 +83,7 @@ export default {
 	},
 } satisfies ExportedHandler<AppEnv>;
 
+// 모든 응답에 지정한 HTTP 상태와 JSON 본문을 적용한다.
 function json(data: unknown, status: number) {
 	return Response.json(data, { status });
 }
