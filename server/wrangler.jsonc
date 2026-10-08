@@ -4,7 +4,11 @@
 	"main": "src/index.ts",
 	"compatibility_date": "2026-09-15",
 	"observability": {
-		"enabled": true
+		"enabled": true,
+		"logs": {
+			"enabled": true,
+			"invocation_logs": false
+		}
 	},
 	// 같은 IP에서 1분에 10번까지만 인식 요청을 받는다.
 	"ratelimits": [
