@@ -12,6 +12,7 @@ WiFi Please: 식당이나 카페의 와이파이 안내문을 찍으면 바로 �
 - **Android 먼저**: Android 11 이상을 우선 지원하고 iOS는 나중에 한다. 시스템 와이파이 창은 `Settings.ACTION_WIFI_ADD_NETWORKS`(Android 11+)를 쓴다. `src/features/wifi/services/connect-wifi.ts`의 `openSystemWifiDialog()`는 Kotlin 네이티브 모듈(`modules/wifi-manager/`)을 호출한다. 시스템 창의 저장/취소 결과를 기다리며 실제 연결 성공으로 표시하지 않는다. 네이티브 코드는 실기기 검증이 필요하다.
 - **디자인**: 포인트 색 블루 `#1A73E8`, 밝은 바탕 `#F5F6F8`. 값은 `src/constants/theme.ts`에 있다. 앱 이름은 WiFi Please. 기술 식별자는 `wifi-please`, Android 패키지는 `com.wifiplease.app`, 딥링크 스킴은 `wifiplease`로 통일한다.
 - **로고**: 사용자가 고른 F안, "손 위의 와이파이"를 사용한다. 검정 `#171717` 바탕과 흰색 심볼이며 원본은 `assets/brand/wifi-please.svg`다. 앱 아이콘, 시작 화면, 앱 내부 브랜드 마크에 동일한 도형을 사용한다. Android 전경과 단색 레이어만 중앙 기준 84%로 축소해 안전 영역을 확보한다. 앱 UI의 블루 포인트 색은 유지한다.
+- **출시 개인정보 처리**: 사진 작업 전 외부 전송을 고지하고 명시적 동의를 받는다. QR에는 AI 동의를 요구하지 않는다. 사진 인식 뒤 확인 화면을 추가하는 것과 구분한다. 정책 원문은 `shared/`에서 앱과 Worker가 함께 사용한다. 실제 운영자 연락처 없이 production 빌드나 정책 정식 공개를 완료 처리하지 않는다.
 
 ## Expo는 바뀌었다. 학습 데이터를 믿지 말 것
 
@@ -52,10 +53,13 @@ npx expo install --fix      # 호환되지 않는 패키지 버전 수정
 src/
   app/                           화면 구성과 Expo Router 라우팅
     _layout.tsx
+    +native-intent.tsx
     index.tsx
     share.tsx
     qr.tsx
     password.tsx
+    privacy.tsx
+    terms.tsx
   components/                    기능과 무관한 앱 공통 UI
     brand-mark.tsx
     ui/
@@ -82,12 +86,17 @@ src/
       wifi-qr.ts                 QR 해석과 생성
     services/
       scan-photo.ts              사진 처리와 서버 요청
+      photo-cache.ts             작업 사진 사본의 안전한 삭제
       connect-wifi.ts            시스템 연결 창 호출
       share-wifi.ts              시스템 Share 호출
       copy-wifi-password.ts      클립보드 복사와 실패 결과 정규화
     __tests__/                   기능별 Vitest 테스트
 modules/wifi-manager/             Expo 로컬 Kotlin 모듈
 server/                          독립 Cloudflare Workers 서버
+shared/                          앱과 서버가 함께 사용하는 정책 원문
+scripts/                         출시 전 검사
+plugins/                         생성되는 네이티브 프로젝트의 설정 변경
+docs/                            출시 요건과 운영 용량 근거
 ```
 
 - `app/`은 화면 구성과 라우팅을 담당한다. 짧은 화면을 다른 폴더로 옮겨 재수출하는 파일을 만들지 않는다.
@@ -114,10 +123,13 @@ server/                          독립 Cloudflare Workers 서버
 | 파일 | 맡는 일 | 맡지 않는 일 |
 | --- | --- | --- |
 | `src/app/_layout.tsx` | Stack과 앱 전역 세션 Provider 구성 | 인식·공유 작업 실행 |
+| `src/app/+native-intent.tsx` | 외부 네이티브 링크의 허용 화면·길이 검사와 쿼리 제거 | 와이파이 데이터 전달, 웹 라우팅 |
 | `src/app/index.tsx` | 권한 안내·카메라 화면 조합, 플래시 표시 상태, 사용자 입력 연결 | 서버 통신, 시스템 와이파이 호출 구현 |
 | `src/app/share.tsx` | 정보·QR·공유 버튼 배치, 정보 없음 처리, 화면 이동 정책 | 공유·복사 SDK 호출 |
 | `src/app/qr.tsx` | QR 확대 화면 구성, 정보 없음 처리, 뒤로 가기 정책 | QR 문자열 규칙, 시스템 공유 구현 |
 | `src/app/password.tsx` | 비밀번호 확대 화면 구성, 빈 정보 처리, 뒤로 가기 정책 | 클립보드 접근, 비밀번호 가공 |
+| `src/app/privacy.tsx` | 개인정보처리방침·문의·약관 진입 표시 | 정책 원문 중복 정의, 사진 전송 동의 결정 |
+| `src/app/terms.tsx` | 이용약관 표시와 화면 이동 | 정책 원문 중복 정의, 서비스 작업 실행 |
 | `src/components/brand-mark.tsx` | 출시 아이콘 이미지를 재사용한 브랜드 마크 표시 | 심볼 도형의 중복 정의, 앱 상태와 화면 이동 |
 | `src/components/ui/button.tsx` | 버튼의 표시·접근성·입력 상태 | 클릭 이후 업무 처리 |
 | `src/components/ui/dialog.tsx` | 안내 팝업과 버튼 렌더링, 표시 계약인 `DialogState` 정의 | 오류 분류, 재시도 정책 결정 |
@@ -132,7 +144,7 @@ server/                          독립 Cloudflare Workers 서버
 | --- | --- | --- |
 | `src/features/wifi/types.ts` | 와이파이 공통 데이터 타입 정의 | SDK 의존, 실행 로직 |
 | `src/features/wifi/session.tsx` | 메모리 세션 Provider와 접근 훅 | 영구 저장, 라우트 파라미터 전달 |
-| `src/features/wifi/use-capture.ts` | 촬영·사진 선택·QR 인식부터 연결·공유 화면 전환까지 조율, 실행 잠금, 오류 안내 상태 | JSX, 서버 통신·네이티브 연결 세부 구현 |
+| `src/features/wifi/use-capture.ts` | 사진 전송 동의, 촬영·사진 선택·QR부터 연결·공유까지 조율, 실행 잠금·오류 안내·재시도 사진 수명 | JSX, 서버 통신·네이티브 연결 세부 구현 |
 | `src/features/wifi/use-camera-lifecycle.ts` | 카메라 참조·준비 상태, 권한 요청, 화면 포커스와 AppState 구독·해제 | 사진 인식, 연결 결과 처리, 오류 팝업 렌더링 |
 | `src/features/wifi/use-share-actions.ts` | 공유·복사·재연결 작업의 상태, 중복 실행 방지, 재시도, 토스트 표시 시간 | SDK 직접 호출, JSX·배치 |
 | `src/features/wifi/components/camera-permission.tsx` | 최초 권한·거부 상태에 맞는 안내와 버튼 표시 | 권한 요청·설정 앱 열기 실행 |
@@ -142,6 +154,7 @@ server/                          독립 Cloudflare Workers 서버
 | `src/features/wifi/components/share-feedback.tsx` | 공유 훅의 상태를 팝업·토스트로 표시하고 위치 결정 | 공유 실행, 오류 상태와 타이머 관리 |
 | `src/features/wifi/lib/wifi-qr.ts` | 동일한 WIFI 형식의 해석·생성·이스케이프 처리 | React, Expo, 네트워크와 기기 접근 |
 | `src/features/wifi/services/scan-photo.ts` | 인식 요청에 필요한 사진 축소·인코딩, HTTP 요청, 제한시간·응답 검사 | 사용자 안내 문구와 화면 이동 |
+| `src/features/wifi/services/photo-cache.ts` | 앱 캐시의 작업 사본만 삭제하고 실패를 격리 | 갤러리 원본 삭제, 재시도 수명 결정 |
 | `src/features/wifi/services/connect-wifi.ts` | 플랫폼 지원 확인과 네이티브 연결 결과 전달 | 공유 화면 전환, 실제 인터넷 연결 성공 판정 |
 | `src/features/wifi/services/share-wifi.ts` | 시스템 공유용 텍스트 구성과 Share API 호출 | 공유 완료 UI, 수신 앱·대화방 선택 |
 | `src/features/wifi/services/copy-wifi-password.ts` | 비밀번호 원문 복사, 플랫폼의 실패 반환값을 오류로 정규화 | 토스트·재시도·표시 시간 관리 |
@@ -161,7 +174,17 @@ server/                          독립 Cloudflare Workers 서버
 | `modules/wifi-manager/android/build.gradle` | 로컬 모듈의 빌드 설정 |
 | `modules/wifi-manager/android/src/main/AndroidManifest.xml` | 로컬 모듈의 Android 선언 |
 | `modules/wifi-manager/android/src/main/java/expo/modules/wifimanager/WifiManagerModule.kt` | 시스템 연결 창 실행, 결과 해석, 대기 Promise 수명 관리 |
-| `server/src/index.ts` | 단일 `/scan` 엔드포인트의 요청 검증·제한과 AI 호출·응답 처리 |
+| `server/src/index.ts` | 요청 경로 분기, `/scan` 검증·제한과 AI 호출·응답 처리 |
+| `server/src/legal.ts` | 공유 원문을 공개 정책 HTML로 렌더링하고 미확정 연락처의 공개 완료 차단 |
+| `shared/privacy.json`, `shared/terms.json` | 앱과 서버의 정책 원문·연락처를 한곳에서 관리 |
+| `scripts/check-release.mjs` | production 빌드 전 공개 연락처 누락 검사 |
+| `scripts/check-android-apk.py` | APK를 변경하지 않고 64비트 ELF LOAD·RELRO 및 ZIP의 16KB 정렬 검사 |
+| `plugins/with-android-page-size.cjs` | 생성 Gradle에 로컬 CMake 링커의 16KB 옵션 적용, 외부 사전 빌드 바이너리는 변경하지 않음 |
+| `src/features/wifi/__tests__/photo-cache.test.ts` | 캐시 경계와 원본 보존, 삭제 실패 격리 검증 |
+| `src/__tests__/native-intent.test.ts` | 외부 링크 입력 제한과 기존 화면 경로 보존 검증 |
+| `server/test/scan.test.ts` | 유료 호출 없이 입력 크기·요청 제한·민감 응답·정책 경로 검증 |
+| `docs/google-play-release.md`, `docs/usage-capacity.md` | 심사 적용 범위·남은 작업과 운영 용량 가정·근거 관리 |
+| `assets/store/feature-graphic.svg`, `assets/store/feature-graphic.png` | 기존 F 로고를 사용한 Google Play 기능 그래픽 원본과 출력 |
 | `vitest.config.mts` | 테스트 환경·대상·경로 별칭 설정 |
 | `eslint.config.js` | 코드 검사와 공통 UI·공유 훅의 정적 import 경계 검사 |
 
@@ -179,7 +202,7 @@ server/                          독립 Cloudflare Workers 서버
 ## EAS로 빌드하기
 
 - 사용자는 무료만 사용한다. 클라우드 빌드 전에 계정의 Free 플랜과 남은 무료 빌드 한도를 확인한다. 유료 플랜 전환이나 추가 과금이 필요한 작업은 실행하지 않는다. 한도가 소진되면 초기화를 기다리거나 로컬 빌드를 사용한다.
-- 사진 인식의 Claude API는 별도 유료 서비스다. 무료 조건에 맞는 인식 방식을 결정하기 전에는 실제 API 요청을 보내는 검증을 실행하지 않고 QR과 모의 응답으로 검증한다.
+- 사진 인식의 Claude API는 별도 유료 서비스다. 운영 비용은 사용자가 결정한다. 자동 검증은 QR과 모의 응답으로 수행하며 사용자의 승인 없이 유료 API 호출로 검증하지 않는다.
 
 EAS를 사용하면 앱 빌드, 서명, 스토어 제출을 클라우드에서 할 수 있고(`eas build`, `eas submit`), OTA 업데이트도 배포할 수 있다(`eas update`). 로컬에 Xcode나 Android Studio가 없어도 된다. EAS CLI는 `npx eas-cli@latest <command>`로 실행하고, 문서 예제의 `eas`를 이것으로 바꿔서 사용한다.
 문서: https://docs.expo.dev/eas/index.md
