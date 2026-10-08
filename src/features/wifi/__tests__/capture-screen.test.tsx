@@ -8,6 +8,8 @@ import CaptureScreen from '@/app/index';
 import { WifiSessionProvider } from '../session';
 import { scanWifiPhoto } from '../services/scan-photo';
 import { openSystemWifiDialog } from '../services/connect-wifi';
+import { Dialog } from '@/components/ui/dialog';
+vi.mock('../services/photo-cache', () => ({ deleteCachedPhoto: vi.fn() }));
 
 const camera = vi.hoisted(() => ({ takePicture: vi.fn(), abort: vi.fn() }));
 
@@ -71,6 +73,8 @@ it('촬영 중 QR 입력은 무시하면서 카메라를 재설정하지 않고 
   const shutter = renderer!.root.findAllByType(Pressable).find(node => node.props.accessibilityLabel === '촬영');
   expect(shutter?.props.disabled).toBe(false);
   await act(async () => { shutter!.props.onPress(); });
+  expect(camera.takePicture).not.toHaveBeenCalled();
+  await act(async () => { renderer!.root.findByType(Dialog).props.value.onPrimary(); });
   expect(camera.takePicture).toHaveBeenCalledTimes(1);
   expect(camera.abort).not.toHaveBeenCalled();
   await act(async () => {

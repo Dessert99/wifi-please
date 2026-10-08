@@ -1,10 +1,12 @@
 import { afterAll, afterEach, expect, it, vi } from 'vitest';
 import { scanWifiPhoto, ScanError } from '../services/scan-photo';
 
+vi.mock('../services/photo-cache', () => ({ deleteCachedPhoto: vi.fn() }));
+
 // 이미지 처리 SDK를 대체해 서버 요청과 응답 처리 흐름에 집중한다.
 vi.mock('expo-image-manipulator', () => ({
   SaveFormat: { JPEG: 'jpeg' },
-  ImageManipulator: { manipulate: () => ({ resize: vi.fn(), renderAsync: async () => ({ saveAsync: async () => ({ base64: '테스트사진' }) }) }) },
+  ImageManipulator: { manipulate: () => ({ resize: vi.fn(), release: vi.fn(), renderAsync: async () => ({ release: vi.fn(), saveAsync: async () => ({ uri: 'file:///cache/resized.jpg', base64: '테스트사진' }) }) }) },
 }));
 
 // ESM 모듈이 주소를 읽기 전에 테스트 환경변수를 설정한다.

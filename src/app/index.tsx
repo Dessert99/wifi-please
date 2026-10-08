@@ -1,5 +1,6 @@
 import { CameraView } from 'expo-camera';
 import { StatusBar } from 'expo-status-bar';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -48,11 +49,15 @@ export default function CaptureScreen() {
         <Pressable accessibilityRole="button" accessibilityLabel="최근 와이파이 정보" disabled={busy || !capture.wifi} onPress={capture.showInfo} style={[styles.captureAction, (busy || !capture.wifi) && { opacity: .35 }]}><Icon name="share" color="white" size={27} /><Text style={styles.actionLabel}>최근 정보</Text></Pressable>
       </View>
     </>}
+    <Pressable accessibilityRole="button" accessibilityLabel="개인정보처리방침" disabled={busy} onPress={() => router.push('/privacy')} style={styles.privacy}>
+      <Text style={{ color: permission.granted ? 'white' : colors.text, fontSize: 12 }}>개인정보처리방침</Text>
+    </Pressable>
     <Dialog value={capture.dialog} onClose={capture.closeDialog} />
   </View>;
 }
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
+  privacy: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   container: { flex: 1 },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 6 },
   brand: { color: 'white', fontSize: 18, fontWeight: '800' },

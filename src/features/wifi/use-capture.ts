@@ -6,6 +6,8 @@ import type { DialogState } from '@/components/ui/dialog';
 import { parseWifiQr } from '@/features/wifi/lib/wifi-qr';
 import { ScanError, scanWifiPhoto, type Photo } from '@/features/wifi/services/scan-photo';
 import { openSystemWifiDialog } from '@/features/wifi/services/connect-wifi';
+import { deleteCachedPhoto } from '@/features/wifi/services/photo-cache';
+import privacy from '../../../shared/privacy.json';
 import type { WifiCredentials } from '@/features/wifi/types';
 import { useWifiSession } from './session';
 import { useCameraLifecycle } from './use-camera-lifecycle';
@@ -18,6 +20,8 @@ export function useCapture() {
   const locked = useRef(false);
   const mounted = useRef(true);
   const cooldown = useRef(0);
+  const photoConsent = useRef(false);
+  const pendingPhoto = useRef<string | undefined>(undefined);
   const { wifi, remember } = useWifiSession();
   // 화면 복귀나 작업 종료 직후 같은 QR이 다시 실행되지 않도록 1.5초간 기다린다.
   const postponeQr = useCallback(() => { cooldown.current = Date.now() + 1500; }, []);
@@ -26,11 +30,19 @@ export function useCapture() {
   // 비동기 결과가 도착했을 때 화면이 아직 존재하는지 확인할 수 있게 한다.
   useEffect(() => {
     mounted.current = true;
-    return () => { mounted.current = false; };
+    return () => { mounted.current = false; deleteCachedPhoto(pendingPhoto.current); };
   }, []);
 
   // 안내를 닫을 때 QR 재인식도 잠시 미룬다.
-  function closeDialog() { setDialog(null); postponeQr(); }
+  function closeDialog() { discardPhoto(); setDialog(null); postponeQr(); }
+  // 재시도가 끝난 작업 사본을 지우고 다음 사진과 섞이지 않도록 참조를 비운다.
+  function discardPhoto() { deleteCachedPhoto(pendingPhoto.current); pendingPhoto.current = undefined; }
+  // 사진 촬영·선택 전에 전송 목적과 수신자를 알리고 명시적인 동의를 받는다.
+  function withPhotoConsent(action: () => Promise<void>) {
+    if (locked.current) return;
+    if (photoConsent.current) { void run(action); return; }
+    setDialog({ title: '사진을 AI로 읽을까요?', message: privacy.disclosure, primary: '동의하고 계속', onPrimary: () => { photoConsent.current = true; void run(action); }, secondary: '취소', onSecondary: closeDialog });
+  }
   // 메모리에 보관한 최근 와이파이 정보를 공유 화면에서 보여준다.
   function showInfo() { closeDialog(); router.push('/share'); }
   // 상태 갱신 전 연속 입력까지 막도록 ref로 잠그고, 작업 종료 시 잠금을 해제한다.
@@ -57,21 +69,25 @@ export function useCapture() {
   }
   // 사진 인식 결과를 연결 정보로 바꾸고 오류 원인에 맞는 복구 동작을 제공한다.
   async function scanPhoto(photo: Photo) {
+    if (pendingPhoto.current !== photo.uri) { discardPhoto(); pendingPhoto.current = photo.uri; }
     setStage('photo');
     try {
       const result = await scanWifiPhoto(photo);
-      if (!mounted.current) return;
+      if (!mounted.current) { discardPhoto(); return; }
       // 찾지 못한 비밀번호(null)와 비밀번호 없는 네트워크(빈 문자열)를 구별한다.
       if (!result.ssid || result.password === null) throw new ScanError('unreadable');
+      discardPhoto();
       await connect({ ssid: result.ssid, password: result.password, security: result.password ? 'WPA' : 'nopass', hidden: false });
     } catch (error) {
-      if (!mounted.current) return;
+      if (!mounted.current) { discardPhoto(); return; }
       // 통신 실패는 같은 사진으로 재시도하고, 제한·인식 실패는 촬영 화면이나 사진 선택으로 복구한다.
       if (error instanceof ScanError && error.reason === 'network') {
         setDialog({ title: '인터넷 연결이 필요해요', message: '사진 인식을 위해 인터넷을 확인해 주세요.\nQR은 인터넷 없이도 읽을 수 있어요.', primary: '다시 시도', onPrimary: () => { void run(() => scanPhoto(photo)); }, secondary: '촬영으로 돌아가기' });
       } else if (error instanceof ScanError && error.reason === 'rate_limited') {
+        discardPhoto();
         setDialog({ title: '잠시 후 다시 시도해 주세요', message: '짧은 시간에 사진을 많이 읽었어요.\nQR 인식은 계속 사용할 수 있어요.', primary: '촬영으로 돌아가기', onPrimary: closeDialog });
       } else if (error instanceof ScanError && error.reason === 'unreadable') {
+        discardPhoto();
         setDialog({ title: '안내문을 읽지 못했어요', message: '와이파이 이름이나 비밀번호가\n선명하게 보이도록 다시 찍어주세요.', primary: '다시 촬영', onPrimary: closeDialog, secondary: '사진 선택', onSecondary: pickPhoto });
       } else {
         setDialog({ title: '사진을 읽지 못했어요', message: '잠시 후 다시 시도하거나\n다른 사진을 선택해 주세요.', primary: '다시 시도', onPrimary: () => { void run(() => scanPhoto(photo)); }, secondary: '촬영으로 돌아가기' });
@@ -80,10 +96,14 @@ export function useCapture() {
   }
   // 사진 선택 취소는 건너뛰고 선택된 사진만 인식한다.
   function pickPhoto() {
-    void run(async () => {
+    withPhotoConsent(async () => {
+      discardPhoto();
       try {
         const result = await launchImageLibraryAsync({ mediaTypes: ['images'] });
-        if (!result.canceled && mounted.current) await scanPhoto(result.assets[0]);
+        if (!result.canceled) {
+          if (mounted.current) await scanPhoto(result.assets[0]);
+          else deleteCachedPhoto(result.assets[0].uri);
+        }
       } catch {
         setDialog({ title: '사진을 열지 못했어요', message: '사진 접근 권한을 확인하고 다시 선택해 주세요.', primary: '사진 선택', onPrimary: pickPhoto, secondary: '닫기' });
       }
@@ -92,10 +112,12 @@ export function useCapture() {
   // 카메라가 준비된 경우에만 촬영하고 사진 인식을 이어서 실행한다.
   function takePhoto() {
     if (!ready || !cameraRef.current) return;
-    void run(async () => {
+    withPhotoConsent(async () => {
+      discardPhoto();
       try {
         const photo = await cameraRef.current!.takePictureAsync({ quality: .8 });
         if (mounted.current) await scanPhoto(photo);
+        else deleteCachedPhoto(photo.uri);
       } catch {
         setDialog({ title: '촬영하지 못했어요', message: '카메라가 준비되면 다시 시도해 주세요.', primary: '닫기', onPrimary: closeDialog });
       }

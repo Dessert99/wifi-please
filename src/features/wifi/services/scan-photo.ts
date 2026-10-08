@@ -1,6 +1,7 @@
 // 와이파이 안내문 사진을 프록시 서버(server/)로 보내 와이파이 이름과 비밀번호를 받는다.
 
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
+import { deleteCachedPhoto } from './photo-cache';
 
 const SCAN_API_URL = process.env.EXPO_PUBLIC_SCAN_API_URL;
 
@@ -61,8 +62,14 @@ async function toResizedBase64({ uri, width, height }: Photo) {
   if (Math.max(width, height) > MAX_EDGE) {
     context.resize(width >= height ? { width: MAX_EDGE } : { height: MAX_EDGE });
   }
-  const rendered = await context.renderAsync();
-  const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.8, base64: true });
-  if (!saved.base64) throw new ScanError('server');
-  return saved.base64;
+  try {
+    const rendered = await context.renderAsync();
+    try {
+      const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.8, base64: true });
+      try {
+        if (!saved.base64) throw new ScanError('server');
+        return saved.base64;
+      } finally { deleteCachedPhoto(saved.uri); }
+    } finally { rendered.release(); }
+  } finally { context.release(); }
 }

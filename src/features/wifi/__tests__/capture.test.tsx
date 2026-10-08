@@ -8,6 +8,8 @@ import { scanWifiPhoto, ScanError } from '@/features/wifi/services/scan-photo';
 import { openSystemWifiDialog } from '@/features/wifi/services/connect-wifi';
 import { useWifiSession } from '../session';
 import { useCapture } from '../use-capture';
+import { deleteCachedPhoto } from '../services/photo-cache';
+vi.mock('../services/photo-cache', () => ({ deleteCachedPhoto: vi.fn() }));
 
 // 기기 API만 대체하고 React 훅과 비동기 흐름은 실제 구현으로 검사한다.
 vi.mock('react-native', () => ({
@@ -74,7 +76,7 @@ afterEach(async () => {
 it('시스템 창이 닫힐 때까지 공유 화면을 열지 않고, 취소해도 정보를 공유할 수 있다', async () => {
   let finish!: (result: Awaited<ReturnType<typeof openSystemWifiDialog>>) => void;
   vi.mocked(openSystemWifiDialog).mockImplementation(() => new Promise(resolve => { finish = resolve; }));
-  await act(async () => { capture.pickPhoto(); });
+  await choosePhoto();
   expect(openSystemWifiDialog).toHaveBeenCalledTimes(1);
   expect(router.push).not.toHaveBeenCalled();
   expect(capture.busy).toBe(true);
@@ -84,20 +86,21 @@ it('시스템 창이 닫힐 때까지 공유 화면을 열지 않고, 취소해�
 });
 it('사진 선택을 연속 눌러도 한 번만 인식하고 연결한다', async () => {
   await act(async () => { capture.pickPhoto(); capture.pickPhoto(); });
+  await act(async () => { currentDialog().onPrimary(); });
   expect(launchImageLibraryAsync).toHaveBeenCalledTimes(1);
   expect(scanWifiPhoto).toHaveBeenCalledTimes(1);
   expect(openSystemWifiDialog).toHaveBeenCalledTimes(1);
 });
 it('정보가 불완전하면 연결 창과 공유 화면을 열지 않는다', async () => {
   vi.mocked(scanWifiPhoto).mockResolvedValue({ ssid: 'Cafe', password: null });
-  await act(async () => { capture.pickPhoto(); });
+  await choosePhoto();
   expect(openSystemWifiDialog).not.toHaveBeenCalled();
   expect(router.push).not.toHaveBeenCalled();
   expect(currentDialog().title).toBe('안내문을 읽지 못했어요');
 });
 it('연결 창 오류가 나도 정보 보기로 복구한다', async () => {
   vi.mocked(openSystemWifiDialog).mockRejectedValue(new Error('연결 실패'));
-  await act(async () => { capture.pickPhoto(); });
+  await choosePhoto();
   expect(remember).toHaveBeenCalledWith(expect.objectContaining({ ssid: 'Cafe' }));
   expect(router.push).not.toHaveBeenCalled();
   await act(async () => { const dialog = currentDialog();
@@ -122,7 +125,7 @@ it('QR은 서버를 거치지 않고 보안 방식과 숨김 여부를 보존한
 });
 it('인터넷 연결 실패 후 재시도는 같은 사진을 사용한다', async () => {
   vi.mocked(scanWifiPhoto).mockRejectedValueOnce(new ScanError('network'));
-  await act(async () => { capture.pickPhoto(); });
+  await choosePhoto();
   expect(currentDialog().title).toBe('인터넷 연결이 필요해요');
   await act(async () => { currentDialog().onPrimary(); });
   expect(launchImageLibraryAsync).toHaveBeenCalledTimes(1);
@@ -131,7 +134,7 @@ it('인터넷 연결 실패 후 재시도는 같은 사진을 사용한다', asy
 });
 it('사진 선택 취소는 연결이나 오류를 만들지 않는다', async () => {
   vi.mocked(launchImageLibraryAsync).mockResolvedValue({ canceled: true, assets: null });
-  await act(async () => { capture.pickPhoto(); });
+  await choosePhoto();
   expect(scanWifiPhoto).not.toHaveBeenCalled();
   expect(capture.dialog).toBeNull();
   expect(capture.busy).toBe(false);
@@ -162,4 +165,40 @@ it('앱이 비활성화되면 카메라를 멈추고 복귀 직후에는 QR 재�
   await act(async () => { vi.advanceTimersByTime(1500); capture.onBarcodeScanned(qr); });
   expect(openSystemWifiDialog).toHaveBeenCalledTimes(1);
   expect(AppState.addEventListener).toHaveBeenCalledTimes(1);
+});
+
+// 동의 단계를 거쳐 기존 인식·연결 흐름을 검증한다.
+async function choosePhoto() {
+  await act(async () => { capture.pickPhoto(); });
+  if (capture.dialog?.title === '사진을 AI로 읽을까요?') {
+    await act(async () => { currentDialog().onPrimary(); });
+  }
+}
+
+it('사진 전송 동의 전과 취소 후에는 사진 선택기와 AI를 실행하지 않는다', async () => {
+  await act(async () => { capture.pickPhoto(); });
+  expect(currentDialog().message).toContain('Anthropic');
+  expect(launchImageLibraryAsync).not.toHaveBeenCalled();
+  expect(scanWifiPhoto).not.toHaveBeenCalled();
+  await act(async () => { capture.closeDialog(); });
+  expect(scanWifiPhoto).not.toHaveBeenCalled();
+  await act(async () => { capture.pickPhoto(); });
+  expect(currentDialog().primary).toBe('동의하고 계속');
+});
+
+it('실패한 사진은 재시도 동안 유지하고 포기하면 캐시를 삭제한다', async () => {
+  vi.mocked(scanWifiPhoto).mockRejectedValueOnce(new ScanError('network'));
+  await choosePhoto();
+  expect(deleteCachedPhoto).not.toHaveBeenCalledWith(photo.uri);
+  await act(async () => { capture.closeDialog(); });
+  expect(deleteCachedPhoto).toHaveBeenCalledWith(photo.uri);
+});
+
+it('인식에 성공하면 시스템 연결 창을 열기 전에 사진 사본을 정리한다', async () => {
+  vi.mocked(openSystemWifiDialog).mockImplementationOnce(async () => {
+    expect(deleteCachedPhoto).toHaveBeenCalledWith(photo.uri);
+    return 'saved';
+  });
+  await choosePhoto();
+  expect(router.push).toHaveBeenCalledWith('/share');
 });
