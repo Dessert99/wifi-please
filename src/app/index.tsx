@@ -33,7 +33,8 @@ export default function CaptureScreen() {
         <Pressable accessibilityRole="button" accessibilityLabel="플래시" accessibilityState={{ selected: flash }} onPress={() => setFlash(!flash)} style={[styles.flash, flash && { backgroundColor: 'white' }]}><FlashIcon color={flash ? colors.camera : 'white'} /></Pressable>
       </View>
       <View style={styles.preview}>
-        {capture.cameraActive && <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" enableTorch={flash && !busy} onCameraReady={() => capture.setReady(true)} onMountError={capture.cameraError} barcodeScannerSettings={{ barcodeTypes: ['qr'] }} onBarcodeScanned={busy || capture.dialog ? undefined : capture.onBarcodeScanned} />}
+        {/* 촬영 중 스캐너를 끄면 Android 카메라가 재생성되므로 QR 결과 차단은 훅에서 처리한다. */}
+        {capture.cameraActive && <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" enableTorch={flash && !busy} onCameraReady={() => capture.setReady(true)} onMountError={capture.cameraError} barcodeScannerSettings={{ barcodeTypes: ['qr'] }} onBarcodeScanned={capture.onBarcodeScanned} />}
         <View style={styles.hint}>
           {busy && <ActivityIndicator size="small" color="white" />}
           <Text style={styles.hintText}>{capture.stage === 'photo' ? '와이파이 정보를 읽는 중이에요' : capture.stage === 'connecting' ? '시스템 연결 창을 여는 중이에요' : '안내문이나 QR을 틀 안에 맞춰주세요'}</Text>
