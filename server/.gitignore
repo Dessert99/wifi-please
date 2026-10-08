@@ -165,3 +165,7 @@ dist
 .env*
 !.env.example
 .wrangler/
+
+# Cloudflare 서버에서 잘못 생성한 Expo 앱 설정은 커밋하지 않는다.
+/app.json
+/eas.json
