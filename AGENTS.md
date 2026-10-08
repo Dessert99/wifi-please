@@ -151,6 +151,7 @@ server/                          독립 Cloudflare Workers 서버
 | 파일 | 맡는 일 |
 | --- | --- |
 | `src/features/wifi/__tests__/capture.test.tsx` | 연결 결과 대기·취소·실패 복구, 중복 입력, 앱 복귀 후 QR 억제 검증 |
+| `src/features/wifi/__tests__/capture-screen.test.tsx` | 화면과 촬영 훅을 조합해 촬영 중 카메라 재설정 방지와 QR 입력 무시 검증 |
 | `src/features/wifi/__tests__/share-actions.test.tsx` | 공유·복사 작업 상태와 실제 복사 서비스 조합 검증, 외부 SDK만 대체 |
 | `src/features/wifi/__tests__/scan-photo.test.ts` | 인식 응답·네트워크 실패·요청 제한·시간 초과 검증 |
 | `src/features/wifi/__tests__/parse-wifi-qr.test.ts` | 외부 WIFI 문자열 해석 규칙 검증 |
