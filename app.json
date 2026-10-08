@@ -39,6 +39,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "./plugins/with-android-page-size.cjs",
       "expo-router",
       [
         "expo-splash-screen",
