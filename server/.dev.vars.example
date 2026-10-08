@@ -1,2 +1,4 @@
-# 로컬 개발용 비밀 값. 이 파일을 .dev.vars로 복사해서 실제 키를 넣는다. (.dev.vars는 git에 올라가지 않음)
+# 로컬 Wrangler와 USB 개발 앱에서만 사용하는 설정이며 실제 키는 .dev.vars에 둔다.
+SCAN_MODE=local
+# 유료 호출을 직접 검증할 때만 본인의 키를 설정한다.
 ANTHROPIC_API_KEY=

@@ -6,9 +6,12 @@ import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod';
 import { legalResponse } from './legal';
+import { scanRequestContent } from '../../shared/scan-contract';
+import { IntegrityError, verifyIntegrity, type IntegrityEnv } from './play-integrity';
+export { ScanQuota } from './scan-quota';
 
 // wrangler secret으로 넣는 값은 wrangler.jsonc에 없어서 직접 타입을 붙인다.
-type AppEnv = Env & { ANTHROPIC_API_KEY: string };
+type AppEnv = Env & IntegrityEnv & { ANTHROPIC_API_KEY: string };
 
 const MODEL = 'claude-haiku-4-5';
 
@@ -21,6 +24,9 @@ const MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 const ScanRequest = z.object({
 	image: z.string().min(1).max(MAX_IMAGE_BASE64_LENGTH),
 	mediaType: z.enum(MEDIA_TYPES).default('image/jpeg'),
+	installationId: z.string().uuid(),
+	requestId: z.string().uuid(),
+	issuedAt: z.number().int().positive(),
 });
 
 // Claude가 돌려줄 답의 형식 (이 형식으로만 답하도록 고정한다)
@@ -48,19 +54,39 @@ export default {
 
 		// 같은 IP의 과도한 요청을 제한하며 전체 비용 상한을 보장하지는 않는다.
 		const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown';
-		const { success } = await env.SCAN_RATE_LIMITER.limit({ key: ip });
-		if (!success) return json({ error: 'rate_limited' }, 429);
+		try {
+			const { success } = await env.SCAN_RATE_LIMITER.limit({ key: ip });
+			if (!success) return json({ error: 'rate_limited', retryAt: Date.now() + 60000 }, 429);
+		} catch { return json({ error: 'quota_unavailable' }, 503); }
 
 		// 요청 본문 검사: 사진이 없거나 너무 크면 Claude를 부르지 않는다.
-		const raw = await readLimitedBody(request, MAX_IMAGE_BASE64_LENGTH + 1024);
+		const raw = await readLimitedBody(request, MAX_IMAGE_BASE64_LENGTH + 2048);
 		if (raw === BODY_TOO_LARGE) return json({ error: 'request_too_large' }, 413);
 		const body = ScanRequest.safeParse(raw);
 		if (!body.success) return json({ error: 'invalid_request' }, 400);
 
 		if (!env.ANTHROPIC_API_KEY) return json({ error: 'unavailable' }, 503);
-		const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, timeout: 25000, maxRetries: 0 });
+		if (Date.now() - body.data.issuedAt > 300000 || body.data.issuedAt - Date.now() > 30000) return json({ error: 'request_expired' }, 409);
+		try {
+			await verifyIntegrity(request, env, await sha256(scanRequestContent(body.data, body.data.mediaType, body.data.image)));
+		} catch (error) {
+			const reason = error instanceof IntegrityError ? error.reason : 'verification_unavailable';
+			return json({ error: reason }, reason === 'verification_unavailable' ? 503 : 403);
+		}
+
+		// 설치 식별자는 해시로만 보관하고 모든 지역 요청을 같은 예산 객체로 모은다.
+		const reservation = { installation: await sha256(body.data.installationId), requestId: body.data.requestId };
+		let quota: DurableObjectStub;
+		try {
+			quota = env.SCAN_QUOTA.get(env.SCAN_QUOTA.idFromName('scan-budget-v1'));
+			const response = await quota.fetch('https://quota/reserve', { method: 'POST', body: JSON.stringify(reservation) });
+			const result = await response.json<{ error?: string; retryAt?: number }>();
+			if (response.status === 429 && result.error) return json(result, 429);
+			if (!response.ok) return json({ error: 'quota_unavailable' }, 503);
+		} catch { return json({ error: 'quota_unavailable' }, 503); }
 
 		try {
+			const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, timeout: 25000, maxRetries: 0 });
 			const response = await client.messages.parse({
 				model: MODEL,
 				max_tokens: 256,
@@ -88,13 +114,25 @@ export default {
 				return json({ error: 'upstream_error' }, 502);
 			}
 			return json({ error: 'upstream_error' }, 502);
+		} finally {
+			// AI 오류도 횟수는 돌려주지 않고 동시 요청 잠금만 해제한다.
+			try { await quota.fetch('https://quota/finish', { method: 'POST', body: JSON.stringify(reservation) }); }
+			catch { console.error('인식 잠금 해제 지연'); }
 		}
 	},
 } satisfies ExportedHandler<AppEnv>;
 
 // 모든 응답에 지정한 HTTP 상태와 JSON 본문을 적용한다.
 function json(data: unknown, status: number) {
-	return Response.json(data, { status, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
+	const headers: Record<string, string> = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
+	if (data && typeof data === 'object' && 'retryAt' in data && typeof data.retryAt === 'number') headers['Retry-After'] = String(Math.max(1, Math.ceil((data.retryAt - Date.now()) / 1000)));
+	return Response.json(data, { status, headers });
+}
+
+// 요청 위변조 검사와 설치 식별자 저장에 동일한 SHA-256 인코딩을 사용한다.
+async function sha256(value: string) {
+	const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+	return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
 // Content-Length가 없거나 틀려도 실제 본문 바이트 한도를 넘기면 AI 호출 전에 중단한다.
