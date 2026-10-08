@@ -1,7 +1,9 @@
 import { afterAll, afterEach, expect, it, vi } from 'vitest';
 import { scanWifiPhoto, ScanError } from '../services/scan-photo';
+import { scanAuthorization } from '../services/scan-auth';
 
 vi.mock('../services/photo-cache', () => ({ deleteCachedPhoto: vi.fn() }));
+vi.mock('../services/scan-auth', () => ({ scanAuthorization: vi.fn(async () => ({ identity: { installationId: '설치', requestId: '요청', issuedAt: 1 }, headers: { 'X-Play-Integrity': '검증 토큰' } })) }));
 
 // 이미지 처리 SDK를 대체해 서버 요청과 응답 처리 흐름에 집중한다.
 vi.mock('expo-image-manipulator', () => ({
@@ -26,20 +28,42 @@ it('잘못된 서버 응답을 연결 정보로 사용하지 않는다', async (
   await expect(scanWifiPhoto(photo)).rejects.toEqual(new ScanError('server'));
 });
 it.each([[429, 'rate_limited'], [503, 'server']])('HTTP %s를 구별한다', async (status, reason) => {
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status }));
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status, json: async () => ({}) }));
   await expect(scanWifiPhoto(photo)).rejects.toMatchObject({ reason });
 });
 it('인터넷 연결 실패를 구별한다', async () => {
   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('오프라인')));
   await expect(scanWifiPhoto(photo)).rejects.toMatchObject({ reason: 'network' });
 });
-it('30초가 지나면 요청을 중단한다', async () => {
+it('50초가 지나면 요청을 중단한다', async () => {
   vi.useFakeTimers();
   vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockImplementation((_url, options) => new Promise((_resolve, reject) => {
     options?.signal?.addEventListener('abort', () => reject(new Error('시간 초과')));
   })));
   const result = scanWifiPhoto(photo);
   const expectation = expect(result).rejects.toMatchObject({ reason: 'network' });
-  await vi.advanceTimersByTimeAsync(30000);
+  await vi.advanceTimersByTimeAsync(50000);
   await expectation;
+});
+
+it('서버의 일일 제한과 초기화 시각을 안내 계층에 전달한다', async () => {
+  const retryAt = Date.UTC(2026, 9, 8, 15);
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 429, json: async () => ({ error: 'daily_limit', retryAt }) }));
+  await expect(scanWifiPhoto(photo)).rejects.toMatchObject({ reason: 'daily_limit', retryAt });
+  expect(fetch).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ headers: expect.objectContaining({ 'X-Play-Integrity': '검증 토큰' }) }));
+});
+
+it('알 수 없는 오류 문구와 유효하지 않은 초기화 시각은 신뢰하지 않는다', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403, json: async () => ({ error: 'integrity_failed', retryAt: 1e30 }) }));
+  await expect(scanWifiPhoto(photo)).rejects.toMatchObject({ reason: 'integrity_failed', retryAt: undefined });
+});
+
+it('앱 검증이 멈추면 20초 뒤 안내하고 사진을 서버로 보내지 않는다', async () => {
+  vi.useFakeTimers();
+  vi.mocked(scanAuthorization).mockImplementationOnce(() => new Promise(() => {}));
+  vi.stubGlobal('fetch', vi.fn());
+  const result = expect(scanWifiPhoto({ ...photo })).rejects.toMatchObject({ reason: 'verification_unavailable' });
+  await vi.advanceTimersByTimeAsync(20000);
+  await result;
+  expect(fetch).not.toHaveBeenCalled();
 });

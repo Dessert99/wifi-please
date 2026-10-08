@@ -32,7 +32,7 @@ vi.mock('@/features/wifi/services/connect-wifi', () => ({ openSystemWifiDialog: 
 vi.mock('@/features/wifi/services/scan-photo', () => ({
   scanWifiPhoto: vi.fn(),
   ScanError: class extends Error {
-    constructor(readonly reason: ConstructorParameters<typeof ScanError>[0]) { super(reason); }
+    constructor(readonly reason: ConstructorParameters<typeof ScanError>[0], readonly retryAt?: number) { super(reason); }
   },
 }));
 vi.mock('../session', () => ({ useWifiSession: vi.fn() }));
@@ -138,6 +138,19 @@ it('사진 선택 취소는 연결이나 오류를 만들지 않는다', async (
   expect(scanWifiPhoto).not.toHaveBeenCalled();
   expect(capture.dialog).toBeNull();
   expect(capture.busy).toBe(false);
+});
+
+it('일일 제한에는 초기화 시각을 안내하고 닫은 뒤 QR 연결은 허용한다', async () => {
+  vi.mocked(scanWifiPhoto).mockRejectedValueOnce(new ScanError('daily_limit', Date.UTC(2026, 9, 8, 15)));
+  await choosePhoto();
+  expect(currentDialog().title).toBe('오늘 사진 인식을 모두 사용했어요');
+  expect(currentDialog().message).toContain('한국 시각');
+  expect(currentDialog().primary).toBe('QR 인식으로 돌아가기');
+  expect(currentDialog().secondary).toBeUndefined();
+  await act(async () => { currentDialog().onPrimary(); });
+  await act(async () => { vi.advanceTimersByTime(1500); capture.onBarcodeScanned({ type: 'qr', data: 'WIFI:S:Cafe;P:12345678;;', cornerPoints: [], bounds: { origin: { x: 0, y: 0 }, size: { width: 100, height: 100 } } }); });
+  expect(openSystemWifiDialog).toHaveBeenCalledTimes(1);
+  expect(scanWifiPhoto).toHaveBeenCalledTimes(1);
 });
 
 it('앱이 비활성화되면 카메라를 멈추고 복귀 직후에는 QR 재인식을 잠시 막는다', async () => {

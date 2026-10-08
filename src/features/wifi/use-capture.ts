@@ -7,6 +7,7 @@ import { parseWifiQr } from '@/features/wifi/lib/wifi-qr';
 import { ScanError, scanWifiPhoto, type Photo } from '@/features/wifi/services/scan-photo';
 import { openSystemWifiDialog } from '@/features/wifi/services/connect-wifi';
 import { deleteCachedPhoto } from '@/features/wifi/services/photo-cache';
+import { scanBlockNotice } from './lib/scan-error';
 import privacy from '../../../shared/privacy.json';
 import type { WifiCredentials } from '@/features/wifi/types';
 import { useWifiSession } from './session';
@@ -80,12 +81,13 @@ export function useCapture() {
       await connect({ ssid: result.ssid, password: result.password, security: result.password ? 'WPA' : 'nopass', hidden: false });
     } catch (error) {
       if (!mounted.current) { discardPhoto(); return; }
+      const blocked = error instanceof ScanError ? scanBlockNotice(error) : null;
       // 통신 실패는 같은 사진으로 재시도하고, 제한·인식 실패는 촬영 화면이나 사진 선택으로 복구한다.
       if (error instanceof ScanError && error.reason === 'network') {
         setDialog({ title: '인터넷 연결이 필요해요', message: '사진 인식을 위해 인터넷을 확인해 주세요.\nQR은 인터넷 없이도 읽을 수 있어요.', primary: '다시 시도', onPrimary: () => { void run(() => scanPhoto(photo)); }, secondary: '촬영으로 돌아가기' });
-      } else if (error instanceof ScanError && error.reason === 'rate_limited') {
+      } else if (blocked) {
         discardPhoto();
-        setDialog({ title: '잠시 후 다시 시도해 주세요', message: '짧은 시간에 사진을 많이 읽었어요.\nQR 인식은 계속 사용할 수 있어요.', primary: '촬영으로 돌아가기', onPrimary: closeDialog });
+        setDialog({ ...blocked, primary: 'QR 인식으로 돌아가기', onPrimary: closeDialog });
       } else if (error instanceof ScanError && error.reason === 'unreadable') {
         discardPhoto();
         setDialog({ title: '안내문을 읽지 못했어요', message: '와이파이 이름이나 비밀번호가\n선명하게 보이도록 다시 찍어주세요.', primary: '다시 촬영', onPrimary: closeDialog, secondary: '사진 선택', onSecondary: pickPhoto });

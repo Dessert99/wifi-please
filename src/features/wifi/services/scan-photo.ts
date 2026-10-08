@@ -2,6 +2,10 @@
 
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { deleteCachedPhoto } from './photo-cache';
+import { scanAuthorization } from './scan-auth';
+import { isScanBlockReason } from '../../../../shared/scan-contract';
+import { ScanError } from '../lib/scan-error';
+export { ScanError } from '../lib/scan-error';
 
 const SCAN_API_URL = process.env.EXPO_PUBLIC_SCAN_API_URL;
 
@@ -16,34 +20,39 @@ export type ScanResult = {
   password: string | null;
 };
 
-// 화면에서 복구 방법을 선택할 수 있도록 인식 실패 원인을 구분한다.
-export class ScanError extends Error {
-  constructor(readonly reason: 'network' | 'rate_limited' | 'server' | 'unreadable') {
-    super(`scan failed: ${reason}`);
-  }
-}
-
 // 사진을 전송용으로 변환하고 서버 응답을 검증한 뒤 인식 결과만 반환한다.
 export async function scanWifiPhoto(photo: Photo): Promise<ScanResult> {
   const image = await toResizedBase64(photo);
 
   if (!SCAN_API_URL) throw new ScanError('server');
-  // 응답 대기가 30초를 넘으면 요청을 중단한다.
+  // 앱 확인이 멈춰도 촬영 화면을 무기한 잠그지 않는다.
+  let verificationTimeout: ReturnType<typeof setTimeout> | undefined;
+  const authorization = await Promise.race([
+    scanAuthorization(photo, image, SCAN_API_URL),
+    new Promise<never>((_resolve, reject) => { verificationTimeout = setTimeout(() => reject(new ScanError('verification_unavailable')), 20000); }),
+  ]).finally(() => clearTimeout(verificationTimeout));
+  // 서버의 앱 검증과 AI 대기 시간을 합쳐 응답 대기를 50초로 제한한다.
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
+  const timeout = setTimeout(() => controller.abort(), 50000);
   try {
     let response: Response;
     try {
       response = await fetch(`${SCAN_API_URL}/scan`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image, mediaType: 'image/jpeg' }),
+        headers: { 'Content-Type': 'application/json', ...authorization.headers },
+        body: JSON.stringify({ image, mediaType: 'image/jpeg', ...authorization.identity }),
         signal: controller.signal,
       });
     } catch { throw new ScanError('network'); }
     // 요청 제한과 서버 오류를 구분해 호출자에게 전달한다.
-    if (response.status === 429) throw new ScanError('rate_limited');
-    if (!response.ok) throw new ScanError('server');
+    if (!response.ok) {
+      const failure: unknown = await response.json().catch(() => null);
+      if (failure && typeof failure === 'object' && 'error' in failure && isScanBlockReason(failure.error)) {
+        const retryAt = 'retryAt' in failure && typeof failure.retryAt === 'number' && Number.isFinite(failure.retryAt) && failure.retryAt > 0 && failure.retryAt < 8640000000000000 ? failure.retryAt : undefined;
+        throw new ScanError(failure.error, retryAt);
+      }
+      throw new ScanError(response.status === 429 ? 'rate_limited' : 'server');
+    }
     // 외부 응답의 필드와 타입을 검사해 잘못된 값을 연결 정보로 사용하지 않는다.
     const result: unknown = await response.json();
     if (!result || typeof result !== 'object' ||
