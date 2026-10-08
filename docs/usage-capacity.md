@@ -1,6 +1,6 @@
 # WiFi Please 사용량과 운영 용량
 
-2026년 10월 8일 기준이다. 사용자 수 자체를 제한하는 앱 계정 제도는 없다. 사진 인식 횟수는 Cloudflare 요청 한도, Claude 예산·요청/토큰 제한, 같은 IP 제한 중 먼저 도달하는 조건으로 결정된다. QR·정보 표시·복사·시스템 공유에는 인식 서버나 Claude 호출이 없다.
+2026년 10월 8일 기준이다. 사용자 수 자체를 제한하는 앱 계정 제도는 없다. 사진 인식 횟수는 Cloudflare 요청 한도, Claude 예산·요청/토큰 제한, 앱 설치별 제한·전체 호출 상한 중 먼저 도달하는 조건으로 결정된다. QR·정보 표시·복사·시스템 공유에는 인식 서버나 Claude 호출이 없다.
 
 ## 현재 확인된 설정
 
@@ -8,9 +8,12 @@
 | --- | --- |
 | 서버 | Cloudflare Workers `wifi-please-server` |
 | AI | `claude-haiku-4-5`, 사진 긴 쪽 1024px, 출력 최대 256토큰 |
-| 앱 요청 | 30초 제한, 사용자가 누르는 재시도만 실행 |
+| 앱 요청 | 기기 앱 검증 20초, 서버 응답 50초 제한. 같은 사진의 재시도는 요청 ID 유지 |
 | AI 요청 | 보완 코드에서 25초 제한, SDK 자동 재시도 0회 |
-| IP 제한 | 동일 IP에 60초당 10회, Cloudflare 위치별 제한 |
+| 설치별 제한 | 하루 10회, 최근 60초 3회, 동시 1회. 사람이나 물리 기기당 제한은 아님 |
+| 전체 상한 | 하루 300회, 월 3,000회. 한국 시각 기준 |
+| IP 제한 | 동일 IP에 60초당 30회, Cloudflare 위치별 보조 제한 |
+| 앱 검증 | Google Play Integrity, 공개 API 필수. 현재 Google 설정·실배포 대기 |
 | Cloudflare 현재 구독 | API의 account-settings는 `default_usage_model: standard`. 이 값만으로 유료 가입을 확정할 수 없음. subscriptions 조회는 403으로 막혀 Free/Paid 확인 필요 |
 | Claude 잔액·월 한도·등급 | 현재 인증으로 확인할 수 없음. 콘솔의 실제 값 필요 |
 | 유료 호출 검증 | 실행하지 않음. 아래 토큰 수와 처리량은 실측이 아님 |
@@ -26,7 +29,7 @@ Free의 하루 한도를 한 달로 이월할 수 없다. 정책 페이지 조�
 
 Paid 초과 요금은 요청 100만 회당 $0.30, CPU 100만 ms당 $0.02이며 로그 등 별도 사용량도 확인해야 한다. [Workers 요금](https://developers.cloudflare.com/workers/platform/pricing/), [Workers 제한](https://developers.cloudflare.com/workers/platform/limits/)
 
-같은 카페 Wi-Fi나 통신사 NAT에서 여러 사람이 같은 IP를 쓰면 **10회/분을 함께 사용**한다. 예를 들어 5명이 각 2회 요청하면 설정된 한도에 도달한다. 이 제한은 위치별·최종 일관성 방식이므로 정확한 전역 비용 상한은 아니다. [Rate Limiting 동작과 IP 공유 주의](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/)
+같은 카페 Wi-Fi나 통신사 NAT에서 여러 사람이 같은 IP를 쓰면 **IP 보조 한도 30회/분을 함께 사용**한다. 설치별 한도는 별도로 적용한다. 이 제한은 위치별·최종 일관성 방식이므로 정확한 전역 비용 상한은 아니다. [Rate Limiting 동작과 IP 공유 주의](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/)
 
 ## Claude 비용으로 계산한 사진 횟수
 
@@ -49,7 +52,7 @@ Haiku 4.5의 표준 API 단가는 입력 100만 토큰당 $1, 출력 100만 토�
 
 실제 평균이 입력 1,000·출력 100토큰이면 1회 $0.0015, 입력 2,000·출력 256토큰이면 $0.00328이다. 같은 $10이라도 약 6,666회 또는 3,048회로 달라진다. 성공적으로 Wi-Fi에 연결한 횟수가 아니라 AI 요청 횟수 기준이며 오인식도 비용이 발생할 수 있다.
 
-예를 들어 **100명이 하루 2회씩 30일** 사진 인식을 요청하면 6,000회, 위 중심 가정으로 **AI 약 $12/월**이다. Cloudflare Free 요청 한도와는 충분한 차이가 있지만 10ms CPU 제한과 실제 AI 계정 한도는 별도로 확인해야 한다.
+예를 들어 **100명이 하루 2회씩 30일** 사진 인식을 요청하면 6,000회, 위 중심 가정으로 **AI 약 $12/월**이다. 다만 현재 구현한 월 3,000회 상한을 유지하면 모두 처리할 수 없다. 월 60회씩 쓰는 사용자 약 50명분이며, 사용자별 이용 시점과 실패 요청에 따라 달라진다. Cloudflare Free 요청 한도와는 충분한 차이가 있지만 10ms CPU 제한과 실제 AI 계정 한도는 별도로 확인해야 한다.
 
 ## 동시에 사용할 수 있는 속도
 
@@ -57,7 +60,7 @@ Claude는 조직·워크스페이스별 RPM, 입력 토큰/분, 출력 토큰/�
 
 ```text
 AI 처리 상한/분 = min(RPM, ITPM / 평균 입력 토큰, OTPM / 평균 출력 토큰)
-실제 앱 처리 상한 = AI 상한과 IP별 한도, Worker 한도, 실제 지연·오류를 함께 고려
+실제 앱 처리 상한 = AI 상한과 설치별·전체 상한, IP·Worker·Durable Objects·앱 검증 한도, 실제 지연·오류를 함께 고려
 ```
 
 잔액, 조직 월 한도의 남은 금액, 워크스페이스 한도의 남은 금액 중 실제로 적용되는 작은 값으로 예산을 계산한다. 자동 충전이나 후불 계약이 있으면 잔액만으로 총 사용량을 제한할 수 없다. 다른 앱이 같은 Claude 조직을 사용하면 한도와 예산을 공유할 수 있다.
@@ -70,3 +73,73 @@ AI 처리 상한/분 = min(RPM, ITPM / 평균 입력 토큰, OTPM / 평균 출�
 4. 허용된 실제 안내문 표본의 평균 입력·출력 토큰과 Worker CPU 시간.
 
 EAS는 앱 설치 파일을 만드는 서비스다. EAS의 무료 빌드 잔여 횟수는 설치된 앱에서 사진이나 QR을 몇 번 사용할 수 있는지 결정하지 않는다.
+
+
+## 사진 인식 남용 방지 설정
+
+2026년 10월 8일 구현 기준이며 **공개 서버에 아직 배포하지 않았다**. 신규 앱에는 네이티브 모듈이 추가되어 다시 빌드해야 한다. `@expo/app-integrity` 57.0.2는 Expo의 알파 모듈이므로 SDK 변경 시 재검증하고, 출시 전 Play 내부 테스트 설치본으로 성공·거절을 확인한다.
+
+| 설정 | 위치 | 초기값 또는 필요 값 |
+| --- | --- | --- |
+| 설치별 일일 횟수 | Worker `SCAN_INSTALL_DAILY` | `10` |
+| 설치별 최근 60초 횟수 | Worker `SCAN_INSTALL_MINUTE` | `3` |
+| 전체 일일 횟수 | Worker `SCAN_GLOBAL_DAILY` | `300` |
+| 전체 월간 횟수 | Worker `SCAN_GLOBAL_MONTHLY` | `3000` |
+| 앱 검증 모드 | Worker `SCAN_MODE` | 공개 서버는 `production` |
+| Android 앱 ID | Worker `PLAY_PACKAGE_NAME` | `com.wifiplease.app` |
+| Google 서비스 계정 | Worker secret `PLAY_SERVICE_ACCOUNT_JSON` | 연결된 Google 프로젝트의 서비스 계정 JSON, 앱·Git에 넣지 않음 |
+| Google Cloud 프로젝트 번호 | 앱 `EXPO_PUBLIC_PLAY_CLOUD_PROJECT_NUMBER` | Play Console과 연결한 숫자 프로젝트 번호, 공개 값 |
+
+월 3,000회에 앞의 중심 가정인 회당 $0.002를 적용하면 AI 약 $6이지만 **확정 요금 상한이 아니다**. 별도 Claude 조직·워크스페이스의 지출 제한을 설정해야 한다. 다른 앱의 Claude 호출과 Workers·Google 비용 및 할당량까지 이 객체가 관리하지 않는다. 기존 배포에서 발생한 사용량은 이 신규 집계에 소급 반영되지 않는다.
+
+### 처리 순서와 저장
+
+1. IP 보조 제한, 본문 크기·요청 형식·5분 유효 시간 검사.
+2. 요청 내용 전체의 SHA-256과 Google의 앱·기기·설치 라이선스 판정 확인. 검증 장애나 설정 누락 시 AI 호출 차단.
+3. 단일 `ScanQuota` 객체의 SQLite 트랜잭션에서 중복 ID·실행 중 요청·설치별·전체 한도를 함께 확인하고 선점.
+4. AI 요청 1회 실행, SDK 자동 재시도 0회. 성공·실패 모두 선점 횟수 유지.
+5. 완료 시 동시 실행 잠금만 해제. 완료 통지가 유실되면 60초 뒤 잠금 만료. AI SDK 시간 제한은 25초.
+
+사진을 AI에 보내기 전 오류가 나면 비용은 발생하지 않지만, 선점 뒤 서버가 종료되면 보수적으로 차감된 슬롯은 유지한다. 횟수 자동 환불은 반복 오류를 이용한 우회와 중복 과금을 막기 위해 하지 않는다. 새로 촬영하거나 사진을 다시 선택하면 새로운 요청으로 처리한다.
+
+서버에는 해시 처리한 설치 ID, 요청 ID·시각·완료 여부, 카운터만 저장한다. 사진·비밀번호·검증 토큰·판정 원문은 저장하지 않는다. 요청 기록 24시간, 설치별 집계 자정, 전체 집계 일간·월간 만료 후 요청 또는 1시간 주기 알람에서 정리한다. 장애로 지연될 수 있고 Cloudflare의 복구 기록에는 최대 30일의 과거 상태가 남을 수 있다. [SQLite 저장과 복구](https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/)
+
+설치 ID는 재설치나 정식 앱을 조작하는 공격으로 바뀔 수 있으므로 사용자 신원 인증 수단이 아니다. Play Integrity도 한 사람당 계정을 보장하지 않는다. 전체 상한은 이런 경우에도 AI 요청의 총량을 제한하지만 공격자가 정상 사용자의 이용 가능량을 먼저 소진하는 상황까지 없애지는 못한다. 지속적으로 발생하면 검증 신호·계정 방식과 발급 정책을 보강한다.
+
+### Google 설정과 활성화 순서
+
+1. Play Console의 앱 무결성에서 Google Cloud 프로젝트를 연결하고 Play Integrity API를 활성화한다.
+2. 연결된 프로젝트의 서버용 서비스 계정을 준비한다. 서비스 계정 JSON은 로컬 Git 폴더 밖에서 취급하고 `server/`에서 `npx wrangler secret put PLAY_SERVICE_ACCOUNT_JSON`의 입력으로만 등록한다. 채팅이나 앱 환경변수에 비밀키를 넣지 않는다.
+3. EAS production 환경에 숫자 프로젝트 번호를 `EXPO_PUBLIC_PLAY_CLOUD_PROJECT_NUMBER`로 등록한다. 스토어 설치본으로 검증할 다른 빌드 환경에도 같은 공개 번호를 설정한다.
+4. Play에서 인식하는 서명의 빌드를 내부 테스트로 배포한다. 직접 설치한 development/preview APK는 운영의 `LICENSED`·`PLAY_RECOGNIZED` 검증을 통과한다고 가정하지 않는다.
+5. 정책 연락처와 서버 인증 설정을 완료한 뒤 새 Worker와 앱을 함께 배포·검증한다. 기존 앱 요청에는 새 설치 ID와 검증 토큰이 없어 거절되므로 배포 시점을 맞춘다.
+6. 실제 내부 테스트 기기에서 촬영 성공, 앱 검증 실패, 제한 안내 후 QR 연결을 확인한다. 네이티브 검증과 유료 AI 실호출은 아직 실시하지 않았다.
+
+[Expo 앱 검증](https://docs.expo.dev/versions/v57.0.0/sdk/app-integrity/), [Play 설정](https://developer.android.com/google/play/integrity/setup), [서버 검증](https://developer.android.com/google/play/integrity/standard), [판정 필드](https://developer.android.com/google/play/integrity/verdicts)
+
+로컬 개발은 공개 서버의 검증을 끄는 방식으로 진행하지 않는다. `server/.dev.vars.example`을 `.dev.vars`로 복사하고 로컬 Worker에서 `SCAN_MODE=local`을 사용한다. USB 기기에서는 `adb reverse tcp:8787 tcp:8787` 후 앱의 개발 환경 `EXPO_PUBLIC_SCAN_API_URL=http://127.0.0.1:8787`을 사용한다. 앱의 개발 빌드 플래그와 서버의 루프백 주소 조건을 모두 만족해야 검증을 생략한다. 공개 서버 주소나 production 앱에는 이 예외를 적용하지 않는다. 로컬 AI 실호출에는 별도의 실제 API 키가 필요하고 자동 테스트는 모의 응답만 사용한다.
+
+### 제한 시 안내
+
+| 상황 | 제목 | 안내·동작 |
+| --- | --- | --- |
+| 설치별 일일 한도 | 오늘 사진 인식을 모두 사용했어요 | 한국 시각으로 다음 이용 시각 표시 |
+| 분당/IP 보조 한도 | 잠시 후 다시 시도해 주세요 | 대기 초 표시 |
+| 전체 일간·월간 한도 | 사진 인식을 잠시 쉬고 있어요 | 서비스 전체 한도임을 설명하고 다음 이용 시각 표시 |
+| 실행 중 요청 | 사진을 읽고 있어요 | 진행 중인 요청 종료 후 재시도 안내 |
+| 중복 요청 | 이미 전송한 사진이에요 | 중복 호출하지 않고 필요하면 새로 촬영하도록 안내 |
+| 요청 만료 | 사진을 다시 찍어 주세요 | 새 촬영 또는 사진 재선택 안내 |
+| 앱 검증 거절 | 앱 확인이 필요해요 | Google Play 최신 앱 확인과 문의처 안내 |
+| 검증 서비스 장애 | 앱을 확인하지 못했어요 | 연결 확인과 잠시 후 재시도 안내 |
+| 집계 저장소 장애 | 사진 인식을 잠시 사용할 수 없어요 | 이용 횟수 확인 실패 안내 |
+
+모든 제한 안내에서 안내문에 QR이 있으면 계속 인식할 수 있음을 알린다. `QR 인식으로 돌아가기`는 안내를 닫고 카메라로 돌아가는 버튼이다. 이미 보관한 와이파이 정보의 공유·QR 표시도 영향을 받지 않는다.
+
+### 운영 주의와 검증
+
+- `scan-budget-v1` 객체 이름·바인딩·마이그레이션을 유지한다. 별도 객체나 별도 서버에서 AI를 호출하면 상한이 분리된다. 과거 DB 상태로 복구하면 카운터도 되돌아가므로 사용량을 대조해야 한다.
+- Durable Objects의 SQLite는 Workers Free에서도 지원한다. 요청·실행 시간·저장소에 별도 한도가 있고 Paid에서는 초과 비용이 발생할 수 있다. 한도 저장소 장애 시 AI를 허용하지 않는다. [공식 요금](https://developers.cloudflare.com/durable-objects/platform/pricing/)
+- Vitest에서 실제 SQLite 트랜잭션, 동시 선점, 일간·월간 경계, 중복·잠금 만료, Google 서명·판정, 제한 UI와 QR 복구를 검사한다.
+- Miniflare의 실제 Workers 런타임과 SQLite Durable Object를 사용해 성공 2회 뒤 전체 상한 및 중복 차단을 확인했다. Anthropic 응답은 로컬에서 대체했고 유료 요청은 보내지 않았다.
+
+최종 자동 검증: Vitest 91개, 앱·서버 타입 검사, Expo lint, Worker 배포 파일 생성 검사 통과. Android release Kotlin 컴파일과 최종 권한 병합을 확인했고 생체인증·지문 권한은 제외했다. 실제 안내 컴포넌트 10종을 320×568 웹 화면에서 표시·닫기 검증했다. 이는 실기기 Play Integrity 성공 검증이나 최종 AAB·16KB 호환 검증을 대신하지 않는다.

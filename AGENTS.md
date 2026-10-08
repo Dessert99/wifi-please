@@ -8,7 +8,7 @@ WiFi Please: 식당이나 카페의 와이파이 안내문을 찍으면 바로 �
 - **사진 인식은 AI로**: 온디바이스 OCR(ML Kit)과 규칙 기반 파싱은 쓰지 않는다. 사진은 긴 쪽 1024px JPEG로 줄여 프록시 서버로 보내고, 서버가 Claude Haiku 4.5(`claude-haiku-4-5`)로 와이파이 이름과 비밀번호를 뽑는다. 규칙 기반 파서는 정확도 문제로 일부러 지웠다.
 - **QR 코드는 앱에서 직접**: 와이파이 QR(`WIFI:S:...;P:...;;`)은 서버를 거치지 않고 `src/features/wifi/lib/wifi-qr.ts`로 읽는다.
 - **공유는 기본 Share API**: React Native의 `Share.share()`로 와이파이 이름과 비밀번호를 텍스트로 공유한다. 공유 버튼은 하나로 두고, 사용자가 시스템 공유 창에서 카카오톡 등 앱을 선택한다. 카카오 SDK나 자체 대화방 선택 화면은 만들지 않는다. 시스템 연결 창을 닫은 뒤 공유 화면을 연다. QR 확대, 비밀번호 확대 및 복사를 제공한다. 사용자가 전체 화면 시안을 승인했다. 와이파이 정보는 앱 메모리에만 보관하며 라우트 파라미터나 저장소에 기록하지 않는다.
-- **프록시 서버는 Cloudflare Workers**: `server/` 폴더. API 키는 Cloudflare secret(`ANTHROPIC_API_KEY`)에만 있고 앱에는 절대 넣지 않는다. IP당 1분 10회 요청 제한이 있다. 배포 주소는 `.env`의 `EXPO_PUBLIC_SCAN_API_URL`. Vercel은 무료 요금제가 비상업 용도만 허용해서 쓰지 않기로 했다.
+- **프록시 서버는 Cloudflare Workers**: `server/` 폴더. API 키는 Cloudflare secret(`ANTHROPIC_API_KEY`)에만 있고 앱에는 절대 넣지 않는다. 설치별 하루 10회·최근 1분 3회·동시 1회, 전체 하루 300회·월 3,000회를 Durable Object 하나에서 원자적으로 선점한다. IP당 1분 30회는 보조 제한이다. 공개 사진 API는 Play Integrity를 필수 검증하며 설정 누락·저장소 장애 시 AI 호출을 차단한다. 배포 주소는 `.env`의 `EXPO_PUBLIC_SCAN_API_URL`. Vercel은 무료 요금제가 비상업 용도만 허용해서 쓰지 않기로 했다.
 - **Android 먼저**: Android 11 이상을 우선 지원하고 iOS는 나중에 한다. 시스템 와이파이 창은 `Settings.ACTION_WIFI_ADD_NETWORKS`(Android 11+)를 쓴다. `src/features/wifi/services/connect-wifi.ts`의 `openSystemWifiDialog()`는 Kotlin 네이티브 모듈(`modules/wifi-manager/`)을 호출한다. 시스템 창의 저장/취소 결과를 기다리며 실제 연결 성공으로 표시하지 않는다. 네이티브 코드는 실기기 검증이 필요하다.
 - **디자인**: 포인트 색 블루 `#1A73E8`, 밝은 바탕 `#F5F6F8`. 값은 `src/constants/theme.ts`에 있다. 앱 이름은 WiFi Please. 기술 식별자는 `wifi-please`, Android 패키지는 `com.wifiplease.app`, 딥링크 스킴은 `wifiplease`로 통일한다.
 - **로고**: 사용자가 고른 F안, "손 위의 와이파이"를 사용한다. 검정 `#171717` 바탕과 흰색 심볼이며 원본은 `assets/brand/wifi-please.svg`다. 앱 아이콘, 시작 화면, 앱 내부 브랜드 마크에 동일한 도형을 사용한다. Android 전경과 단색 레이어만 중앙 기준 84%로 축소해 안전 영역을 확보한다. 앱 UI의 블루 포인트 색은 유지한다.
@@ -84,8 +84,10 @@ src/
       share-feedback.tsx         공유 오류와 복사 토스트 표시
     lib/
       wifi-qr.ts                 QR 해석과 생성
+      scan-error.ts              인식 오류 계약과 제한 안내 문구
     services/
       scan-photo.ts              사진 처리와 서버 요청
+      scan-auth.ts               설치 식별자·중복 요청 ID·Play Integrity 증명
       photo-cache.ts             작업 사진 사본의 안전한 삭제
       connect-wifi.ts            시스템 연결 창 호출
       share-wifi.ts              시스템 Share 호출
@@ -93,7 +95,7 @@ src/
     __tests__/                   기능별 Vitest 테스트
 modules/wifi-manager/             Expo 로컬 Kotlin 모듈
 server/                          독립 Cloudflare Workers 서버
-shared/                          앱과 서버가 함께 사용하는 정책 원문
+shared/                          앱과 서버가 함께 사용하는 정책 원문과 인식 요청 계약
 scripts/                         출시 전 검사
 plugins/                         생성되는 네이티브 프로젝트의 설정 변경
 docs/                            출시 요건과 운영 용량 근거
@@ -175,9 +177,16 @@ docs/                            출시 요건과 운영 용량 근거
 | `modules/wifi-manager/android/src/main/AndroidManifest.xml` | 로컬 모듈의 Android 선언 |
 | `modules/wifi-manager/android/src/main/java/expo/modules/wifimanager/WifiManagerModule.kt` | 시스템 연결 창 실행, 결과 해석, 대기 Promise 수명 관리 |
 | `server/src/index.ts` | 요청 경로 분기, `/scan` 검증·제한과 AI 호출·응답 처리 |
+| `server/src/scan-quota.ts` | Durable Object의 원자적 횟수 선점·동시 요청·중복 요청 차단과 만료 자료 삭제 |
+| `server/src/play-integrity.ts` | Google 서버 인증과 요청 해시·앱·기기·라이선스 판정 검증, 로컬 전용 개발 예외 |
+| `shared/scan-contract.ts` | 양쪽의 요청 직렬화와 제한 사유 계약 |
+| `src/features/wifi/services/scan-auth.ts` | 임의 설치 ID 보안 저장, 같은 사진의 요청 ID 유지, Expo 앱 검증 모듈 호출 |
+| `src/features/wifi/lib/scan-error.ts` | 인식 오류 타입과 제한 사유별 사용자 문구, 한국 시각 초기화 안내 |
+| `server/test/scan-quota.test.ts`, `server/test/play-integrity.test.ts` | 실제 SQLite 트랜잭션과 모의 Google 응답·실제 JWT 서명 검증 |
+| `src/features/wifi/__tests__/scan-auth.test.ts`, `src/features/wifi/__tests__/scan-error.test.ts` | 식별자 수명·요청 증명·제한 안내 검증 |
 | `server/src/legal.ts` | 공유 원문을 공개 정책 HTML로 렌더링하고 미확정 연락처의 공개 완료 차단 |
 | `shared/privacy.json`, `shared/terms.json` | 앱과 서버의 정책 원문·연락처를 한곳에서 관리 |
-| `scripts/check-release.mjs` | production 빌드 전 공개 연락처 누락 검사 |
+| `scripts/check-release.mjs` | production 빌드 전 공개 연락처와 Play Cloud 프로젝트 번호 누락 검사 |
 | `scripts/check-android-apk.py` | APK를 변경하지 않고 64비트 ELF LOAD·RELRO 및 ZIP의 16KB 정렬 검사 |
 | `plugins/with-android-page-size.cjs` | 생성 Gradle에 로컬 CMake 링커의 16KB 옵션 적용, 외부 사전 빌드 바이너리는 변경하지 않음 |
 | `src/features/wifi/__tests__/photo-cache.test.ts` | 캐시 경계와 원본 보존, 삭제 실패 격리 검증 |
@@ -212,3 +221,11 @@ EAS를 사용하면 앱 빌드, 서명, 스토어 제출을 클라우드에서 �
 - `ios/`, `android/` 폴더가 없다면 자동 생성되는 폴더다(Continuous Native Generation). 직접 만들거나 수정하지 않는다. 네이티브 동작은 `app.json`과 config plugin으로 설정한다.
 - Expo Go는 사용하지 않는다. 항상 development build를 사용한다: 로컬에서는 `npx expo run:android`, 클라우드에서는 `npx eas-cli@latest build --profile development`.
 - 서드파티 라이브러리보다 Expo 권장 모듈을 우선하고, 의존성을 추가하기 전에 사용 가능한 skill을 확인한다. 문서: https://docs.expo.dev/versions/latest/index.md
+
+### 사진 인식 제한 유지 규칙
+
+- 한도 값은 `server/wrangler.jsonc`에서 관리하며 앱의 카운터를 신뢰하지 않는다. 설치 ID는 사람·물리 기기 신원의 증명이 아니므로 전체 상한을 반드시 유지한다.
+- `scan-budget-v1` 객체 이름이나 Durable Object 바인딩을 임의로 바꾸거나 데이터베이스를 복구하면 집계가 초기화되거나 되돌아갈 수 있다. 배포 시 동일 객체를 유지한다.
+- AI 호출 전에 횟수를 선점하고 실패해도 자동 복구하지 않는다. SDK 재시도는 0회다. 사진·비밀번호·검증 토큰을 집계 DB나 로그에 넣지 않는다.
+- 개발 검증 예외는 서버의 `SCAN_MODE=local`과 루프백 주소를 함께 확인한다. 공개 배포에는 검증 생략 모드를 만들지 않는다.
+- Play Integrity 설정에는 사용자 Google Cloud 프로젝트 번호, Play Console 연결, 서버 secret이 필요하다. 설정 전 구현 완료와 실제 운영 활성화를 구분한다.
