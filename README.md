@@ -9,7 +9,7 @@
 - 개인정보처리방침 원문: `shared/privacy.json`, 이용약관 원문: `shared/terms.json`
 - 앱 촬영 화면 아래에서 개인정보처리방침과 이용약관을 열 수 있습니다.
 
-공개 개발자명과 문의 이메일은 아직 확정되지 않았습니다. `shared/privacy.json`에 실제 값을 입력하고 Worker의 `/privacy`, `/terms`를 공개한 뒤 제출해야 합니다. `npm run check:release`와 EAS production 사전 검사에서 누락을 차단합니다. 로컬 출시 빌드는 성공했지만 외부 네이티브 바이너리 14개의 16KB RELRO 정렬 문제가 남아 있습니다. 제출 전에 이 문제와 실기기 검증을 마쳐야 하며, 상세 결과는 출시 체크리스트에 있습니다.
+공개 개발자명과 문의 이메일은 아직 확정되지 않았습니다. `shared/privacy.json`에 실제 값을 입력하고 Worker의 `/privacy`, `/terms`를 공개한 뒤 제출해야 합니다. `npm run check:release`와 EAS production 사전 검사에서 누락을 차단합니다. 이전에 보고한 네이티브 라이브러리 14개의 RELRO 문제는 검사기의 오탐으로 정정했습니다. Android Studio 기준으로 검사기를 수정했고 로컬 APK·AAB의 64비트 라이브러리 54개와 APK ZIP 정렬을 확인했습니다. 실기기 확인 범위와 상세 결과는 출시 체크리스트에 있습니다.
 
 ## 앱 이름과 식별자
 

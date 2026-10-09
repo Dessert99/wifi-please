@@ -1,6 +1,6 @@
 # WiFi Please Google Play 출시 준비
 
-2026년 10월 8일 기준 Android 휴대폰용 앱에 적용되는 요건이다. 사진 인식, 시스템 Wi-Fi 저장, QR, 공유 기능은 출시 범위로 충분하다. 다만 현재는 네이티브 RELRO 정렬 문제, 운영자 연락처와 계정 관련 절차가 남아 있어 즉시 제출 준비 완료 상태는 아니다.
+2026년 10월 8일 기준 Android 휴대폰용 앱에 적용되는 요건이다. 사진 인식, 시스템 Wi-Fi 저장, QR, 공유 기능은 출시 범위로 충분하다. 운영자 연락처와 계정 관련 절차는 별도로 완료해야 한다. 2026-10-09 재검토에서 기존 RELRO 차단 판단은 검사기 오탐으로 정정했다.
 
 ## 적용 요건과 현재 대응
 
@@ -15,7 +15,7 @@
 | 이용약관 | 모든 앱에 별도 동의 화면이 필수인 것은 아님 | `/terms`에 이용 권한, 공유 범위, AI·연결 한계, 문의·변경 안내 추가. 가입 절차는 추가하지 않음 |
 | 계정 삭제 | 앱에서 계정을 만들 수 있는 경우 적용 | 앱 계정·가입 기능이 없어 현재 해당 없음. OS에 저장한 네트워크 삭제 방법은 개인정보 안내에 기재 |
 | 목표 API | 신규 휴대폰 앱은 API 36 이상 | Expo SDK 57 기반. 최종 AAB의 targetSdk 재확인 |
-| 64비트와 16KB | 네이티브 라이브러리 포함 앱의 호환성 확인 | arm64 LOAD·APK ZIP 정렬 통과, 외부 바이너리 14개의 RELRO 끝 주소 정렬 미통과. 아래 출시 차단 항목 참조 |
+| 64비트와 16KB | 네이티브 라이브러리 포함 앱의 호환성 확인 | 기존 RELRO 오탐 수정. 아래 빌드 산출물 검증 결과와 실기기 확인 범위 참조 |
 | 배포 형식과 서명 | 신규 앱 Android App Bundle, 업로드 키와 Play App Signing 사용 | `production` EAS 프로필 사용. 로컬 점검용 debug 서명 APK는 제출하지 않음 |
 | 작동 품질 | 충돌·멈춤·주요 기능 장애가 없어야 함 | 자동 테스트에 동의·권한과 인식 실패 복구 추가. 아래 실기기 항목은 최종 빌드에서 수행 |
 | 정확한 설명 | 앱 기능과 한계를 사실대로 설명 | “저장 승인 = 연결 성공”, 비밀번호 해킹, 모든 기기 자동 접속으로 광고하지 않음 |
@@ -98,34 +98,51 @@ Cloudflare와 Anthropic이 개발자를 대신해 처리하는 서비스 제공�
 
 ## 의존성 보안 검토
 
-`npm audit --omit=dev` 결과 서버는 보고된 취약점 0개, 앱은 상위 의존성 전파를 포함해 42개(높음 26, 보통 16)다. 설치 트리에는 앱에 포함되지 않는 Expo 빌드 도구와 React Native의 테스트 도구도 dependencies로 들어 있으므로 숫자를 APK의 직접 취약점 수로 해석하지 않는다. 반대로 전체가 무해하다고 처리하지도 않는다.
+2026-10-09 `npm audit --omit=dev` 결과 서버는 보고된 취약점 0개, 앱 설치 트리는 상위 의존성 전파를 포함해 39개(높음 26, 보통 13)다. 변경 전 앱 설치 트리는 42개였다. 설치 트리에는 Expo 빌드 도구와 React Native의 테스트 도구도 포함되므로 숫자를 APK의 직접 취약점 수로 해석하지 않는다.
 
-- Expo Router → query-string → decode-uri-component 0.2.2에는 잘못된 URL 디코딩으로 앱이 멈출 수 있는 보고가 있다. 패치 0.5.0은 ESM이라 기존 CommonJS 소비자에 단순 override하면 호환성이 깨질 수 있다. SDK를 강제 변경하는 대신 네이티브 외부 링크를 알려진 짧은 경로로만 정규화해 해당 입력 경로를 완화했다. 네이티브 시작·실행 중 링크를 테스트하며, Expo 의존성 자체의 업데이트 추적은 남는다. 웹 앱을 배포한다면 웹 진입에도 별도 대응해야 한다. [보안 공지](https://github.com/advisories/GHSA-vcc3-ghjq-m6fr), [Expo 네이티브 링크 처리](https://docs.expo.dev/router/advanced/native-intent/)
-- braces, node-forge는 Expo 빌드·개발 도구 경로에 있고 점검 당시 공식 패치 버전이 없다. 개발 서버를 신뢰할 수 없는 네트워크에 공개하지 않으며, SDK 업데이트 때 다시 확인한다. [braces 공지](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm), [node-forge 공지](https://github.com/advisories/GHSA-86w9-cpqp-85rv)
-- sprintf-js는 React Native 테스트 프리셋 아래의 빌드·테스트 의존성이다. 프로젝트 테스트 실행 도구는 계속 Vitest다.
-- uuid 7은 iOS 프로젝트 생성용 xcode 패키지에서 v4를 호출한다. 보고된 문제는 외부 버퍼를 받는 v3/v5/v6에 관한 것으로 현재 확인한 사용 경로와 다르다. [uuid 공지](https://github.com/advisories/GHSA-w5hq-g745-h8pq)
+- **앱 실행 경로 수정**: Expo Router → query-string → decode-uri-component의 URL 디코딩 서비스 거부 취약점에 공식 0.5.0 수정 코드를 적용했다. `vendor/decode-uri-component/`의 CommonJS 호환 사본을 직접 의존성과 override로 고정했다. ESM 전용 내보내기만 바꾸고, 대용량 입력 테스트에서 확인한 동적 정규식 오류를 문자열 치환으로 보완했다. 원본 라이선스·소스 해시·변경 이유는 해당 폴더 README에 있다. 로컬 사본이므로 audit 경고 감소만으로 수정 여부를 판단하지 않고 원본 대조와 회귀 테스트도 수행했다. [보안 공지](https://github.com/advisories/GHSA-vcc3-ghjq-m6fr), [공식 수정 코드](https://github.com/SamVerschueren/decode-uri-component/tree/v0.5.0)
+- **방어 유지**: 네이티브 외부 링크는 2,048자 이내의 허용 화면으로만 정규화하고 쿼리를 제거한다. 실제 query-string 및 Router의 URL 해석·직렬화, 잘못된 UTF-8, 30만 자 입력을 Vitest로 검증했다. 정상 한국어·이모지·쿼리 처리를 보존한다.
+- **남은 설치 도구 경고**: braces, node-forge는 빌드·개발 도구, sprintf-js는 테스트 도구, uuid 7은 xcode 프로젝트 생성 경로다. 생성된 Android release Metro 소스맵의 1,633개 모듈을 audit 설치 경로와 대조한 결과, 이 네 패키지의 직접 취약점 코드는 번들에 포함되지 않았다. Expo 내부의 `expo-modules-core/src/uuid/`는 별도 구현으로 npm uuid 7과 구분했다. [braces 공지](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm), [node-forge 공지](https://github.com/advisories/GHSA-86w9-cpqp-85rv), [uuid 공지](https://github.com/advisories/GHSA-w5hq-g745-h8pq)
 
-`npm audit fix --force`가 제시한 Expo 44 또는 React Native 0.72로의 변경은 현재 SDK 57 조합을 깨뜨리므로 적용하지 않았다. 이 검토는 바이너리 전체 보안 인증을 대신하지 않는다.
+재검사 방법:
 
-## 검증 결과와 네이티브 출시 차단 항목
+```bash
+npm audit --omit=dev --json > /tmp/wifi-please-audit.json
+node scripts/check-runtime-dependencies.mjs \
+  /tmp/wifi-please-audit.json \
+  android/app/build/generated/sourcemaps/react/release/index.android.bundle.map
+```
 
-2026-10-08 로컬 검사 결과:
+`npm audit`는 경고가 있으면 종료 코드 1을 반환하지만 JSON 파일은 생성한다. 위 경로의 소스맵은 release 빌드 후 존재한다. 검사기는 audit에 직접 보고된 JS 패키지가 소스맵에 있으면 실패한다. 이 검토는 미보고 취약점·네이티브 바이너리의 전체 보안 인증을 대신하지 않는다. 남은 빌드 도구 경고는 SDK 업데이트 시 재검토한다. SDK 57 조합을 깨뜨리는 `npm audit fix --force`는 적용하지 않았다.
 
-- Vitest 47개 통과, Expo lint·앱 TypeScript·서버 TypeScript 통과.
-- Worker dry-run 통과. 로컬 `/privacy`, `/terms`는 연락처 미등록 때문에 의도적으로 503을 반환하며 AI는 호출하지 않음.
-- 웹 320×568 및 360×740에서 사진 동의·취소 버튼, 정책 화면과 약관 이동 확인. JS 실행 오류 없음. Android 실기기 검증을 대신하지 않음.
-- `:app:assembleRelease -PreactNativeArchitectures=arm64-v8a` 성공. 로컬 기본 debug 키로 서명된 점검용 APK이며 Play 제출용 AAB가 아님.
-- 최종 manifest: minSdk 30, targetSdk 36, 백업 비활성. 권한은 CAMERA, INTERNET, ACCESS_NETWORK_STATE 및 앱 내부 서명 권한. 사진 전체 접근·마이크·광고 ID·오버레이·진동 권한 없음.
-- arm64 `.so` 27개 모두 LOAD 정렬 16KB 이상, `zipalign -c -P 16 4` 통과. 초기에는 23개의 GNU_RELRO 끝 주소가 어긋났고, config plugin의 링커 설정으로 직접 빌드하는 9개를 해결했다. **외부에서 공급된 바이너리 14개는 여전히 경계와 불일치.**
+## 검증 결과와 16KB 판정 정정
 
-Google의 현재 문서는 RELRO의 가상 주소와 MemSiz 합도 16KB 경계에 맞아야 한다고 설명한다. 실제 16KB 기기에서의 충돌은 아직 재현하지 않았지만, 이 정적 검사 결과를 호환 통과로 표시하지 않는다. 해결된 파일에는 `libappmodules.so`, `libexpo-modules-core.so`, `libreanimated.so`가 있다. 남은 파일에는 `libhermesvm.so`, `libc++_shared.so`, `libfbjni.so`, `libjsi.so` 등이 있다. 검사 스크립트가 전체 목록을 출력한다. [RELRO 확인과 재빌드 기준](https://developer.android.com/guide/practices/page-sizes#relro-flag)
+기존의 “외부 바이너리 14개 수정 필요” 판단은 잘못됐다. 이전 스크립트는 RELRO 끝 주소가 16KB 경계가 아니면 무조건 실패시켰다. Android Studio의 공식 검사는 RELRO가 LOAD 시작·끝과 일치하거나 동일한 실제 섹션 전체를 보호하는 경우도 허용한다. Hermes·React Native의 해당 바이너리는 이 조건에 해당한다. [Android Studio 공식 검사 구현](https://android.googlesource.com/platform/tools/base/+/7765a1e4385997e1919311925a88cbd12218f818/sdk-common/src/main/java/com/android/ide/common/pagealign/PageAlignUtils.kt)
+
+`scripts/check-android-apk.py`를 이 기준에 맞춰 수정했다. 섹션 정보가 없는 경우에는 빈 목록끼리 같다는 이유로 통과시키지 않는다. 실제 4KB LOAD, 잘못된 RELRO 시작·끝, 다음 LOAD 침범은 계속 실패시킨다. 이 조건들을 Vitest에서 실제 Python 검사기에 전달해 검증한다. 외부 ELF 바이너리를 수정하거나 호환 모드로 우회하지 않았다. 기존 로컬 CMake의 16KB 링커 옵션은 유지했다.
+
+2026-10-09 자동 검증:
+
+- Vitest 116개, Expo lint, 앱·서버 TypeScript 통과.
+- Expo Doctor 21개 검사 통과, package-lock의 `npm ci --dry-run` 검사 통과.
+- 실제 Android release Metro 번들에 수정된 URL 디코더 포함, audit의 나머지 직접 취약점 패키지는 미포함.
+- 로컬 `:app:assembleRelease :app:bundleRelease` 성공. arm64-v8a, armeabi-v7a, x86, x86_64에 각각 네이티브 라이브러리 27개 포함.
+- APK와 AAB의 arm64-v8a·x86_64 라이브러리 54개 모두 LOAD·RELRO 검사 통과. 32비트 ABI는 빌드에 포함하며 16KB ELF 검사 대상에서는 제외한다.
+- 직접 생성한 APK의 `zipalign -c -P 16 4` 통과. AAB BundleConfig는 `PAGE_ALIGNMENT_16K`.
+- 공식 bundletool 1.18.3으로 AAB에서 생성한 universal APK도 54개 ELF 및 ZIP 정렬 통과. 이 변환 APK는 정렬 검사용 미서명 파일이다.
+- 최종 manifest의 minSdk 30, targetSdk 36, debuggable false, allowBackup false 확인.
+
+빌드 산출물의 정적 검사는 실제 16KB 기기의 실행 검증을 대신하지 않는다. 실제 기기와 Play 사전 출시 검사는 제출 단계에서 별도로 확인한다. 로컬 기본 debug 키를 사용한 release 빌드는 검사용이며 Play 제출 서명본은 아니다.
+
+재검사 명령:
 
 ```bash
 python3 scripts/check-android-apk.py \
   android/app/build/outputs/apk/release/app-release.apk \
   --zipalign "$ANDROID_HOME/build-tools/36.0.0/zipalign"
+
+python3 scripts/check-android-apk.py \
+  android/app/build/outputs/bundle/release/app-release.aab --aab
 ```
 
-현재 SDK 57 호환 패키지 검사는 통과하고 Expo 57.0.27·React Native 0.86.3은 조회한 해당 버전 계열의 최신 패치다. 프로젝트에서 직접 컴파일하는 라이브러리에는 `plugins/with-android-page-size.cjs`를 통해 Google이 제시한 NDK r27 링커의 `max-page-size`와 `common-page-size`를 적용하고 재빌드했다. 그러나 Hermes·React Native 등 **배포된 바이너리 의존성도 함께 교체·재빌드해야 하므로 프로젝트 NDK 설정만 변경해서 해결됐다고 할 수 없다.**
-
-후속 작업은 해당 의존성의 수정된 호환 배포본 확보 또는 검증 가능한 소스 재빌드, 최종 AAB의 전체 ABI 검사, 16KB 실기기와 Play 사전 출시 검사다. ELF 파일을 임의로 수정하거나 호환 모드로 문제를 숨기는 처리는 하지 않았다. 아직 실행하지 않은 x86_64 검사도 제출 전 확인해야 한다.
+AAB 검사는 내부 ELF만 확인한다. AAB의 BundleConfig가 16KB 정렬을 요청하는지와 bundletool로 생성한 APK의 ZIP 정렬도 함께 확인한다. [Google 16KB 가이드](https://developer.android.com/guide/practices/page-sizes), [bundletool](https://developer.android.com/tools/bundletool)

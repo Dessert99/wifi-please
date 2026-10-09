@@ -97,6 +97,8 @@ modules/wifi-manager/             Expo 로컬 Kotlin 모듈
 server/                          독립 Cloudflare Workers 서버
 shared/                          앱과 서버가 함께 사용하는 정책 원문과 인식 요청 계약
 scripts/                         출시 전 검사
+  __tests__/                     검사기와 보안 호환 코드의 Vitest 회귀 검증
+vendor/                          공식 보안 패치의 최소 호환 사본과 원본 라이선스
 plugins/                         생성되는 네이티브 프로젝트의 설정 변경
 docs/                            출시 요건과 운영 용량 근거
 ```
@@ -187,7 +189,12 @@ docs/                            출시 요건과 운영 용량 근거
 | `server/src/legal.ts` | 공유 원문을 공개 정책 HTML로 렌더링하고 미확정 연락처의 공개 완료 차단 |
 | `shared/privacy.json`, `shared/terms.json` | 앱과 서버의 정책 원문·연락처를 한곳에서 관리 |
 | `scripts/check-release.mjs` | production 빌드 전 공개 연락처와 Play Cloud 프로젝트 번호 누락 검사 |
-| `scripts/check-android-apk.py` | APK를 변경하지 않고 64비트 ELF LOAD·RELRO 및 ZIP의 16KB 정렬 검사 |
+| `scripts/check-android-apk.py` | APK/AAB를 변경하지 않고 64비트 ELF의 LOAD·RELRO 경계와 APK ZIP 정렬 검사 |
+| `scripts/check-runtime-dependencies.mjs` | npm audit의 직접 취약점 설치 경로를 실제 Metro 소스맵과 대조 |
+| `scripts/__tests__/android-page-size.test.ts` | 정상 RELRO의 오탐 방지 및 실제 미정렬·구간 침범 검출 |
+| `scripts/__tests__/url-decoder.test.ts` | 실제 Router·query-string 호환성과 악성 URL 입력 처리 검증 |
+| `scripts/__tests__/runtime-dependencies.test.ts` | audit 경로와 번들 소스의 포함 관계 및 이름 충돌 오탐 검증 |
+| `vendor/decode-uri-component/` | 공식 URL 디코더 보안 수정본의 CommonJS 호환, 출처·변경점·라이선스 보존 |
 | `plugins/with-android-page-size.cjs` | 생성 Gradle에 로컬 CMake 링커의 16KB 옵션 적용, 외부 사전 빌드 바이너리는 변경하지 않음 |
 | `src/features/wifi/__tests__/photo-cache.test.ts` | 캐시 경계와 원본 보존, 삭제 실패 격리 검증 |
 | `src/__tests__/native-intent.test.ts` | 외부 링크 입력 제한과 기존 화면 경로 보존 검증 |
