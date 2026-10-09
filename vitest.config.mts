@@ -7,7 +7,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['src/**/*.test.{ts,tsx}', 'server/test/**/*.test.ts'],
+    include: ['src/**/*.test.{ts,tsx}', 'server/test/**/*.test.ts', 'scripts/__tests__/**/*.test.ts'],
     clearMocks: true,
   },
 });

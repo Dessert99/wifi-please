@@ -44,3 +44,6 @@ example
 
 # 로컬 네이티브 모듈의 컴파일 결과와 캐시
 /modules/*/android/build/
+
+# Python 검사 스크립트의 실행 캐시
+__pycache__/
