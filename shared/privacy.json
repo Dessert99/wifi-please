@@ -1,8 +1,8 @@
 {
   "appName": "WiFi Please",
-  "updatedAt": "2026-10-08",
-  "developerName": "",
-  "contactEmail": "",
+  "updatedAt": "2026-10-12",
+  "developerName": "daumjs",
+  "contactEmail": "lsjh1234@naver.com",
   "publicUrl": "https://wifi-please-server.snapfi.workers.dev/privacy",
   "disclosure": "와이파이 이름과 비밀번호를 읽기 위해 촬영하거나 선택한 사진을 Cloudflare 서버를 거쳐 Anthropic의 Claude AI로 전송해요. 사진 속 다른 내용도 함께 전송되니 안내문만 담아주세요. Anthropic은 API 입력·출력을 기본적으로 최대 30일 보관하며 정책·법적 예외가 있어요. QR은 사진 전송 없이 이용할 수 있어요. 사진 인식의 부정 이용을 막기 위해 임의 설치 식별자와 요청 정보를 서버로 보내고 Google Play 앱·기기 검증을 이용해요.",
   "sections": [
