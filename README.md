@@ -60,13 +60,15 @@ Expo는 새 이름의 프로젝트에 연결했습니다. 이전 프로젝트는
 ## 동작 방식
 
 ```
-사진 → 프록시 서버 → Claude Haiku 4.5가 아이디와 비밀번호 인식 → 시스템 와이파이 창 → 연결
+사진 → 프록시 서버 → Claude Haiku 5.5가 아이디와 비밀번호 인식 → 시스템 와이파이 창 → 연결
 QR 코드 ─────────────→ 앱에서 아이디와 비밀번호 바로 읽기 ─────┘
 ```
 
-- 사진 인식은 AI(Claude Haiku 4.5)가 합니다. API 키는 앱이 아니라 프록시 서버(Cloudflare Workers)에만 있습니다
+- 사진 인식은 AI(Claude Haiku 5.5)가 합니다. API 키는 앱이 아니라 프록시 서버(Cloudflare Workers)에만 있습니다
 - 사진 AI에는 설치별 하루 10회·분당 3회·동시 1회 및 전체 하루 300회·월 3,000회 제한을 적용합니다. 공개 서버는 Play Integrity 검증과 서버 집계를 통과한 요청만 AI에 전달합니다
 - QR 코드는 서버를 거치지 않고 앱에서 바로 읽습니다
+- 사진으로 읽은 와이파이 이름은 주변 와이파이 검색 결과와 맞춰 실제 이름과 보안 방식으로 고칩니다. 근처 기기 권한(Android 12 이하는 위치 권한)을 거부하면 인식한 값 그대로 엽니다
+- 이미 연결된 와이파이는 앱이 비밀번호를 읽을 수 없어서, Android 기본 QR 공유 기능으로 안내합니다
 - Android 11 이상의 `ACTION_WIFI_ADD_NETWORKS`를 Expo 로컬 Kotlin 모듈로 호출합니다
 - 개방형, WPA/WPA2, WPA3(SAE)를 시스템 창에 전달합니다. 지원하지 않는 보안 방식은 정보 보기로 복구합니다
 - QR의 보안 방식과 숨김 여부, 정보의 공백과 특수문자를 공유 과정에서도 보존합니다
@@ -83,7 +85,7 @@ QR 코드 ─────────────→ 앱에서 아이디와 비�
 
 - [Expo](https://expo.dev) SDK 57, React Native, TypeScript
 - [Expo Router](https://docs.expo.dev/router/introduction/): 화면 이동
-- [Claude Haiku 4.5](https://platform.claude.com/docs/en/build-with-claude/vision): 사진에서 와이파이 정보 인식
+- [Claude Haiku 5.5](https://platform.claude.com/docs/en/build-with-claude/vision): 사진에서 와이파이 정보 인식
 - [Cloudflare Workers](https://developers.cloudflare.com/workers/): 프록시 서버
 - Expo Modules API (Kotlin): Android 와이파이 연결
 - Expo Go 대신 development build를 사용합니다
