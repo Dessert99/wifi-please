@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DialogState } from '@/components/ui/dialog';
 import { parseWifiQr } from '@/features/wifi/lib/wifi-qr';
 import { ScanError, scanWifiPhoto, type Photo } from '@/features/wifi/services/scan-photo';
-import { openSystemWifiDialog } from '@/features/wifi/services/connect-wifi';
+import { correctWithNearbyNetwork, openSystemWifiDialog } from '@/features/wifi/services/connect-wifi';
 import { deleteCachedPhoto } from '@/features/wifi/services/photo-cache';
 import { hasPhotoConsent, savePhotoConsent } from '@/features/wifi/services/photo-consent';
 import { scanBlockNotice } from './lib/scan-error';
@@ -81,7 +81,9 @@ export function useCapture() {
       // 찾지 못한 비밀번호(null)와 비밀번호 없는 네트워크(빈 문자열)를 구별한다.
       if (!result.ssid || result.password === null) throw new ScanError('unreadable');
       discardPhoto();
-      await connect({ ssid: result.ssid, password: result.password, security: result.password ? 'WPA' : 'nopass', hidden: false });
+      // 안내문 표기와 실제 이름이 다르면 저장만 되고 연결되지 않으므로 주변 네트워크 이름으로 고친다.
+      const recognized = { ssid: result.ssid, password: result.password, security: result.password ? 'WPA' : 'nopass', hidden: false };
+      await connect(await correctWithNearbyNetwork(recognized));
     } catch (error) {
       if (!mounted.current) { discardPhoto(); return; }
       const blocked = error instanceof ScanError ? scanBlockNotice(error) : null;

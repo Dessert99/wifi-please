@@ -30,7 +30,7 @@ vi.mock('expo-router', async () => {
     useFocusEffect: (effect: React.EffectCallback) => useEffect(effect, [effect]),
   };
 });
-vi.mock('@/features/wifi/services/connect-wifi', () => ({ openSystemWifiDialog: vi.fn() }));
+vi.mock('@/features/wifi/services/connect-wifi', () => ({ openSystemWifiDialog: vi.fn(), correctWithNearbyNetwork: vi.fn(async (wifi: unknown) => wifi) }));
 vi.mock('@/features/wifi/services/scan-photo', () => ({
   scanWifiPhoto: vi.fn(),
   ScanError: class extends Error {

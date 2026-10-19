@@ -47,7 +47,7 @@ vi.mock('expo-camera', async () => {
   };
 });
 vi.mock('../services/scan-photo', () => ({ scanWifiPhoto: vi.fn(), ScanError: class extends Error {} }));
-vi.mock('../services/connect-wifi', () => ({ openSystemWifiDialog: vi.fn() }));
+vi.mock('../services/connect-wifi', () => ({ openSystemWifiDialog: vi.fn(), correctWithNearbyNetwork: vi.fn(async (wifi: unknown) => wifi) }));
 
 let renderer: ReactTestRenderer | undefined;
 

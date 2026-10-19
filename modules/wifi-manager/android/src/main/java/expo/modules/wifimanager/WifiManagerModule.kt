@@ -1,7 +1,9 @@
 package expo.modules.wifimanager
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
+import android.net.wifi.WifiManager
 import android.net.wifi.WifiNetworkSuggestion
 import android.os.Build
 import android.provider.Settings
@@ -55,6 +57,22 @@ class WifiManagerModule : Module() {
         promise.reject("ERR_WIFI_DIALOG", "시스템 연결 창을 열지 못했어요.", error)
       }
     }.runOnQueue(Queues.MAIN)
+
+    // 시스템이 최근에 찾은 주변 와이파이의 이름·보안 방식·신호 세기를 돌려준다. 권한이 없으면 빈 목록이다.
+    AsyncFunction("getNearbyNetworks") {
+      val context = appContext.reactContext ?: return@AsyncFunction emptyList<Map<String, Any>>()
+      val wifi = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+      try {
+        // 다음 인식을 위해 새 검색을 요청하고, 이번에는 이미 받아 둔 결과를 바로 사용한다.
+        @Suppress("DEPRECATION") wifi.startScan()
+        @Suppress("DEPRECATION")
+        wifi.scanResults.filter { it.SSID.isNotEmpty() }.map {
+          mapOf("ssid" to it.SSID, "capabilities" to it.capabilities, "level" to it.level)
+        }
+      } catch (error: SecurityException) {
+        emptyList()
+      }
+    }
 
     // 이 모듈의 요청 결과만 처리하고 취소도 정상적인 종료 결과로 반환한다.
     OnActivityResult { _, result ->
