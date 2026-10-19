@@ -5,7 +5,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { launchImageLibraryAsync } from 'expo-image-picker';
 import { router } from 'expo-router';
 import { scanWifiPhoto, ScanError } from '@/features/wifi/services/scan-photo';
-import { openSystemWifiDialog, openWifiSettings } from '@/features/wifi/services/connect-wifi';
+import { answerNearbyPermissionGuide, correctWithNearbyNetwork, openSystemWifiDialog, openWifiSettings, shouldAskNearbyPermission } from '@/features/wifi/services/connect-wifi';
 import { useWifiSession } from '../session';
 import { useCapture } from '../use-capture';
 import { deleteCachedPhoto } from '../services/photo-cache';
@@ -30,7 +30,7 @@ vi.mock('expo-router', async () => {
     useFocusEffect: (effect: React.EffectCallback) => useEffect(effect, [effect]),
   };
 });
-vi.mock('@/features/wifi/services/connect-wifi', () => ({ openSystemWifiDialog: vi.fn(), correctWithNearbyNetwork: vi.fn(async (wifi: unknown) => wifi), openWifiSettings: vi.fn(async () => {}) }));
+vi.mock('@/features/wifi/services/connect-wifi', () => ({ openSystemWifiDialog: vi.fn(), correctWithNearbyNetwork: vi.fn(async (wifi: unknown) => wifi), openWifiSettings: vi.fn(async () => {}), shouldAskNearbyPermission: vi.fn(async () => false), answerNearbyPermissionGuide: vi.fn(async () => {}) }));
 vi.mock('@/features/wifi/services/scan-photo', () => ({
   scanWifiPhoto: vi.fn(),
   ScanError: class extends Error {
@@ -210,6 +210,26 @@ it('동의하면 기기에 저장하고, 저장된 동의가 있으면 다시 �
   await act(async () => { capture.pickPhoto(); });
   expect(capture.dialog).toBeNull();
   expect(launchImageLibraryAsync).toHaveBeenCalledTimes(2);
+});
+
+it('최초 1회 주변 와이파이 안내에서 계속을 고르면 권한을 요청한 뒤 보정한 정보로 연결한다', async () => {
+  vi.mocked(shouldAskNearbyPermission).mockResolvedValueOnce(true);
+  vi.mocked(correctWithNearbyNetwork).mockImplementationOnce(async wifi => ({ ...wifi, ssid: 'CAFE_5G' }));
+  await choosePhoto();
+  expect(currentDialog().title).toBe('주변 와이파이를 확인할까요?');
+  expect(openSystemWifiDialog).not.toHaveBeenCalled();
+  await act(async () => { currentDialog().onPrimary(); });
+  expect(answerNearbyPermissionGuide).toHaveBeenCalledWith(true);
+  expect(openSystemWifiDialog).toHaveBeenCalledWith(expect.objectContaining({ ssid: 'CAFE_5G' }));
+});
+
+it('주변 와이파이 안내를 뒤로 가기로 닫으면 건너뛰고 인식한 정보로 연결한다', async () => {
+  vi.mocked(shouldAskNearbyPermission).mockResolvedValueOnce(true);
+  await choosePhoto();
+  await act(async () => { capture.closeDialog(); });
+  expect(answerNearbyPermissionGuide).toHaveBeenCalledWith(false);
+  expect(openSystemWifiDialog).toHaveBeenCalledWith(expect.objectContaining({ ssid: 'Cafe' }));
+  expect(capture.busy).toBe(false);
 });
 
 it('연결된 와이파이 공유는 Android 기본 QR 공유를 안내하고 와이파이 설정을 연다', async () => {

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DialogState } from '@/components/ui/dialog';
 import { parseWifiQr } from '@/features/wifi/lib/wifi-qr';
 import { ScanError, scanWifiPhoto, type Photo } from '@/features/wifi/services/scan-photo';
-import { correctWithNearbyNetwork, openSystemWifiDialog, openWifiSettings } from '@/features/wifi/services/connect-wifi';
+import { answerNearbyPermissionGuide, correctWithNearbyNetwork, openSystemWifiDialog, openWifiSettings, shouldAskNearbyPermission } from '@/features/wifi/services/connect-wifi';
 import { deleteCachedPhoto } from '@/features/wifi/services/photo-cache';
 import { hasPhotoConsent, savePhotoConsent } from '@/features/wifi/services/photo-consent';
 import { scanBlockNotice } from './lib/scan-error';
@@ -24,6 +24,7 @@ export function useCapture() {
   const cooldown = useRef(0);
   const photoConsent = useRef(false);
   const pendingPhoto = useRef<string | undefined>(undefined);
+  const pendingChoice = useRef<((allow: boolean) => void) | null>(null);
   const { wifi, remember } = useWifiSession();
   // 화면 복귀나 작업 종료 직후 같은 QR이 다시 실행되지 않도록 1.5초간 기다린다.
   const postponeQr = useCallback(() => { cooldown.current = Date.now() + 1500; }, []);
@@ -34,11 +35,27 @@ export function useCapture() {
     mounted.current = true;
     // 이전 실행에서 받은 동의를 불러와 설치당 한 번만 묻는다.
     void hasPhotoConsent().then(saved => { if (saved) photoConsent.current = true; });
-    return () => { mounted.current = false; deleteCachedPhoto(pendingPhoto.current); };
+    return () => { mounted.current = false; deleteCachedPhoto(pendingPhoto.current); pendingChoice.current?.(false); };
   }, []);
 
   // 안내를 닫을 때 QR 재인식도 잠시 미룬다.
-  function closeDialog() { discardPhoto(); setDialog(null); postponeQr(); }
+  function closeDialog() { discardPhoto(); setDialog(null); postponeQr(); choose(false); }
+  // 진행 중인 작업이 기다리는 안내 선택을 한 번만 전달한다.
+  function choose(allow: boolean) { const resolve = pendingChoice.current; pendingChoice.current = null; resolve?.(allow); }
+  // 권한 창 전에 주변 와이파이를 확인하는 이유를 설치당 한 번 설명하고, 뒤로 가기도 건너뛰기로 본다.
+  function askNearbyPermission() {
+    return new Promise<boolean>(resolve => {
+      pendingChoice.current = resolve;
+      setDialog({
+        title: '주변 와이파이를 확인할까요?',
+        message: '안내문에 적힌 이름과 실제 와이파이 이름이 조금만 달라도 연결되지 않아요. 주변 와이파이 이름을 확인해 바로잡을게요.\n\n위치는 저장하거나 서버로 보내지 않아요. Android 12 이하에서는 위치 권한으로 표시돼요.',
+        primary: '계속',
+        onPrimary: () => { setDialog(null); choose(true); },
+        secondary: '건너뛰기',
+        onSecondary: () => { setDialog(null); choose(false); },
+      });
+    });
+  }
   // 재시도가 끝난 작업 사본을 지우고 다음 사진과 섞이지 않도록 참조를 비운다.
   function discardPhoto() { deleteCachedPhoto(pendingPhoto.current); pendingPhoto.current = undefined; }
   // 사진 촬영·선택 전에 전송 목적과 수신자를 알리고 명시적인 동의를 받는다.
@@ -97,6 +114,11 @@ export function useCapture() {
       discardPhoto();
       // 안내문 표기와 실제 이름이 다르면 저장만 되고 연결되지 않으므로 주변 네트워크 이름으로 고친다.
       const recognized = { ssid: result.ssid, password: result.password, security: result.password ? 'WPA' : 'nopass', hidden: false };
+      if (await shouldAskNearbyPermission()) {
+        const allow = await askNearbyPermission();
+        if (!mounted.current) return;
+        await answerNearbyPermissionGuide(allow);
+      }
       await connect(await correctWithNearbyNetwork(recognized));
     } catch (error) {
       if (!mounted.current) { discardPhoto(); return; }
