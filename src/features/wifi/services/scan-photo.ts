@@ -9,8 +9,9 @@ export { ScanError } from '../lib/scan-error';
 
 const SCAN_API_URL = process.env.EXPO_PUBLIC_SCAN_API_URL;
 
-// 긴 쪽 1024px이면 안내문 글자를 읽기에 충분하고, 전송량과 AI 비용이 줄어든다.
-const MAX_EDGE = 1024;
+// Claude가 원본 그대로 읽는 상한(긴 쪽 1568px, 약 115만 화소)에 맞춰 작은 글씨를 살리고 서버 측 재축소를 피한다.
+const MAX_EDGE = 1568;
+const MAX_PIXELS = 1_150_000;
 
 export type Photo = { uri: string; width: number; height: number };
 
@@ -65,16 +66,22 @@ export async function scanWifiPhoto(photo: Photo): Promise<ScanResult> {
   } finally { clearTimeout(timeout); }
 }
 
-// 사진을 긴 쪽 1024px JPEG로 줄이고 base64 문자열로 바꾼다.
+// 긴 쪽과 전체 화소 상한을 함께 지키도록 줄일 크기를 계산한다.
+export function resizedSize(width: number, height: number) {
+  const scale = Math.min(1, MAX_EDGE / Math.max(width, height), Math.sqrt(MAX_PIXELS / (width * height)));
+  // 부동소수점 오차로 1px 작아지지 않도록 아주 작은 값을 더해 내린다.
+  return { width: Math.floor(width * scale + 1e-6), height: Math.floor(height * scale + 1e-6) };
+}
+
+// 사진을 인식 상한 크기의 JPEG로 줄이고 base64 문자열로 바꾼다.
 async function toResizedBase64({ uri, width, height }: Photo) {
   const context = ImageManipulator.manipulate(uri);
-  if (Math.max(width, height) > MAX_EDGE) {
-    context.resize(width >= height ? { width: MAX_EDGE } : { height: MAX_EDGE });
-  }
+  const size = resizedSize(width, height);
+  if (size.width < width) context.resize(size);
   try {
     const rendered = await context.renderAsync();
     try {
-      const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.8, base64: true });
+      const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.9, base64: true });
       try {
         if (!saved.base64) throw new ScanError('server');
         return saved.base64;

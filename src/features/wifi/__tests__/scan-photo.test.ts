@@ -1,5 +1,5 @@
 import { afterAll, afterEach, expect, it, vi } from 'vitest';
-import { scanWifiPhoto, ScanError } from '../services/scan-photo';
+import { resizedSize, scanWifiPhoto, ScanError } from '../services/scan-photo';
 import { scanAuthorization } from '../services/scan-auth';
 
 vi.mock('../services/photo-cache', () => ({ deleteCachedPhoto: vi.fn() }));
@@ -66,4 +66,12 @@ it('앱 검증이 멈추면 20초 뒤 안내하고 사진을 서버로 보내지
   await vi.advanceTimersByTimeAsync(20000);
   await result;
   expect(fetch).not.toHaveBeenCalled();
+});
+
+it('사진을 긴 쪽 1568px과 약 115만 화소 안으로 줄이고 작은 사진은 키우지 않는다', () => {
+  const photo = resizedSize(4000, 3000);
+  expect(photo.width * photo.height).toBeLessThanOrEqual(1_150_000);
+  expect(photo.width).toBeGreaterThan(1200);
+  expect(resizedSize(3000, 1000)).toEqual({ width: 1568, height: 522 });
+  expect(resizedSize(800, 600)).toEqual({ width: 800, height: 600 });
 });
