@@ -3,6 +3,7 @@
   <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
   <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
   <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" android:usesPermissionFlags="neverForLocation" />
-  <!-- Android 12 이하는 주변 와이파이 목록에 위치 권한이 필요하다. -->
+  <!-- Android 12 이하는 주변 와이파이 목록에 정확한 위치 권한이 필요하고, Android 12는 대략적인 위치를 함께 요청해야 한다. -->
   <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="32" />
+  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" android:maxSdkVersion="32" />
 </manifest>

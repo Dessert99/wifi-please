@@ -15,13 +15,16 @@ export async function openSystemWifiDialog(wifi: WifiCredentials) {
 export async function correctWithNearbyNetwork(wifi: WifiCredentials): Promise<WifiCredentials> {
   if (Platform.OS !== 'android' || !WifiManager?.getNearbyNetworks) return wifi;
   try {
-    // Android 13부터는 위치와 무관한 근처 기기 권한, 그 이전은 위치 권한으로 와이파이 목록을 읽는다.
-    const permission = Number(Platform.Version) >= 33
-      ? PermissionsAndroid.PERMISSIONS.NEARBY_WIFI_DEVICES
-      : PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION;
-    const granted = await PermissionsAndroid.check(permission) ||
-      await PermissionsAndroid.request(permission) === PermissionsAndroid.RESULTS.GRANTED;
-    if (!granted) return wifi;
+    // Android 13부터는 위치와 무관한 근처 기기 권한, 그 이전은 정확한 위치 권한으로 와이파이 목록을 읽는다.
+    const { NEARBY_WIFI_DEVICES, ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION } = PermissionsAndroid.PERMISSIONS;
+    const permission = Number(Platform.Version) >= 33 ? NEARBY_WIFI_DEVICES : ACCESS_FINE_LOCATION;
+    if (!await PermissionsAndroid.check(permission)) {
+      // Android 12는 대략적인 위치를 함께 요청하지 않으면 정확한 위치 요청을 무시한다.
+      const requested = permission === ACCESS_FINE_LOCATION ? [ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION] : [permission];
+      const results = await PermissionsAndroid.requestMultiple(requested);
+      // 대략적인 위치만 허용하면 와이파이 목록을 읽을 수 없으므로 인식 값을 그대로 쓴다.
+      if (results[permission] !== PermissionsAndroid.RESULTS.GRANTED) return wifi;
+    }
     return matchNearbyNetwork(wifi, await WifiManager.getNearbyNetworks());
   } catch {
     return wifi;
