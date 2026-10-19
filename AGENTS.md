@@ -176,6 +176,7 @@ docs/                            출시 요건과 운영 용량 근거
 | `src/features/wifi/__tests__/share-actions.test.tsx` | 공유·복사 작업 상태와 실제 복사 서비스 조합 검증, 외부 SDK만 대체 |
 | `src/features/wifi/__tests__/scan-photo.test.ts` | 인식 응답·네트워크 실패·요청 제한·시간 초과 검증 |
 | `src/features/wifi/__tests__/parse-wifi-qr.test.ts` | 외부 WIFI 문자열 해석 규칙 검증 |
+| `src/features/wifi/__tests__/connect-wifi.test.ts` | Android 버전별 주변 와이파이 권한 요청, 거부·검색 실패 시 인식 값 유지 검증 |
 | `src/features/wifi/__tests__/nearby-network.test.ts` | 실제 이름 보정·대역별 이름 선택·애매한 후보 유지·보안 방식 판정 검증 |
 | `src/features/wifi/__tests__/wifi-qr.test.ts` | 생성과 해석을 왕복했을 때 원문과 보안 정보 보존 검증 |
 | `modules/wifi-manager/index.ts` | Expo 네이티브 모듈 탐색과 TypeScript 호출 계약 |
