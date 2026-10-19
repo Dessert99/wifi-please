@@ -9,7 +9,7 @@ WiFi Please: 식당이나 카페의 와이파이 안내문을 찍으면 바로 �
 - **QR 코드는 앱에서 직접**: 와이파이 QR(`WIFI:S:...;P:...;;`)은 서버를 거치지 않고 `src/features/wifi/lib/wifi-qr.ts`로 읽는다.
 - **공유는 기본 Share API**: React Native의 `Share.share()`로 와이파이 이름과 비밀번호를 텍스트로 공유한다. 공유 버튼은 하나로 두고, 사용자가 시스템 공유 창에서 카카오톡 등 앱을 선택한다. 카카오 SDK나 자체 대화방 선택 화면은 만들지 않는다. 시스템 연결 창을 닫은 뒤 공유 화면을 연다. QR 확대, 비밀번호 확대 및 복사를 제공한다. 이미 연결된 와이파이는 앱이 저장된 비밀번호를 읽을 수 없으므로 촬영 화면의 "내 와이파이 공유"에서 Android 기본 QR 공유 방법을 안내하고 와이파이 설정을 연다. 연결 이력을 저장해 QR을 만드는 방식은 사용자가 선택하지 않았다. 사용자가 전체 화면 시안을 승인했다. 와이파이 정보는 앱 메모리에만 보관하며 라우트 파라미터나 저장소에 기록하지 않는다.
 - **프록시 서버는 Cloudflare Workers**: `server/` 폴더. API 키는 Cloudflare secret(`ANTHROPIC_API_KEY`)에만 있고 앱에는 절대 넣지 않는다. 설치별 하루 10회·최근 1분 3회·동시 1회, 전체 하루 300회·월 3,000회를 Durable Object 하나에서 원자적으로 선점한다. IP당 1분 30회는 보조 제한이다. 공개 사진 API는 Play Integrity를 필수 검증하며 설정 누락·저장소 장애 시 AI 호출을 차단한다. 배포 주소는 `.env`의 `EXPO_PUBLIC_SCAN_API_URL`. Vercel은 무료 요금제가 비상업 용도만 허용해서 쓰지 않기로 했다.
-- **Android 먼저**: Android 11 이상을 우선 지원하고 iOS는 나중에 한다. 시스템 와이파이 창은 `Settings.ACTION_WIFI_ADD_NETWORKS`(Android 11+)를 쓴다. `src/features/wifi/services/connect-wifi.ts`의 `openSystemWifiDialog()`는 Kotlin 네이티브 모듈(`modules/wifi-manager/`)을 호출한다. 시스템 창의 저장/취소 결과를 기다리며 실제 연결 성공으로 표시하지 않는다. 사진으로 읽은 이름은 시스템 창을 열기 전에 주변 와이파이 검색 결과(Android 13+ 근처 기기 권한, 12 이하 위치 권한)와 맞춰 실제 이름·보안 방식으로 고친다. 권한을 거부하면 인식 값 그대로 연다. 서드파티 앱은 시스템 와이파이 설정 화면에 비밀번호를 미리 채울 수 없다. 네이티브 코드는 실기기 검증이 필요하다.
+- **Android 먼저**: Android 11 이상을 우선 지원하고 iOS는 나중에 한다. 시스템 와이파이 창은 `Settings.ACTION_WIFI_ADD_NETWORKS`(Android 11+)를 쓴다. `src/features/wifi/services/connect-wifi.ts`의 `openSystemWifiDialog()`는 Kotlin 네이티브 모듈(`modules/wifi-manager/`)을 호출한다. 시스템 창의 저장/취소 결과를 기다리며 실제 연결 성공으로 표시하지 않는다. 사진으로 읽은 이름은 시스템 창을 열기 전에 주변 와이파이 검색 결과(Android 13+ 근처 기기 권한, 12 이하 위치 권한)와 맞춰 실제 이름·보안 방식으로 고친다. 권한 창 전에 이유 안내를 설치당 한 번만 띄우며, 계속·건너뛰기·뒤로 가기 모두 기록해 다시 묻지 않는다. 권한을 거부하면 인식 값 그대로 연다. 서드파티 앱은 시스템 와이파이 설정 화면에 비밀번호를 미리 채울 수 없다. 네이티브 코드는 실기기 검증이 필요하다.
 - **디자인**: 포인트 색 블루 `#1A73E8`, 밝은 바탕 `#F5F6F8`. 값은 `src/constants/theme.ts`에 있다. 앱 이름은 WiFi Please. 기술 식별자는 `wifi-please`, Android 패키지는 `com.wifiplease.app`, 딥링크 스킴은 `wifiplease`로 통일한다.
 - **로고**: 사용자가 고른 F안, "손 위의 와이파이"를 사용한다. 검정 `#171717` 바탕과 흰색 심볼이며 원본은 `assets/brand/wifi-please.svg`다. 앱 아이콘, 시작 화면, 앱 내부 브랜드 마크에 동일한 도형을 사용한다. Android 전경과 단색 레이어만 중앙 기준 84%로 축소해 안전 영역을 확보한다. 앱 UI의 블루 포인트 색은 유지한다.
 - **출시 개인정보 처리**: 사진 작업 전 외부 전송을 고지하고 명시적 동의를 받는다. QR에는 AI 동의를 요구하지 않는다. 사진 인식 뒤 확인 화면을 추가하는 것과 구분한다. 정책 원문은 `shared/`에서 앱과 Worker가 함께 사용한다. 실제 운영자 연락처 없이 production 빌드나 정책 정식 공개를 완료 처리하지 않는다.
@@ -163,7 +163,7 @@ docs/                            출시 요건과 운영 용량 근거
 | `src/features/wifi/services/scan-photo.ts` | 인식 요청에 필요한 사진 축소·인코딩, HTTP 요청, 제한시간·응답 검사 | 사용자 안내 문구와 화면 이동 |
 | `src/features/wifi/services/photo-cache.ts` | 앱 캐시의 작업 사본만 삭제하고 실패를 격리 | 갤러리 원본 삭제, 재시도 수명 결정 |
 | `src/features/wifi/services/photo-consent.ts` | 고지 개정일과 함께 사진 전송 동의를 기기 보안 저장소에 보관·확인 | 동의 팝업 표시, 동의 전 사진 작업 차단 결정 |
-| `src/features/wifi/services/connect-wifi.ts` | 플랫폼 지원 확인과 네이티브 연결 결과 전달, 주변 와이파이 권한 요청과 검색 결과로 이름 보정, 시스템 와이파이 설정 열기 | 공유 화면 전환, 실제 인터넷 연결 성공 판정 |
+| `src/features/wifi/services/connect-wifi.ts` | 플랫폼 지원 확인과 네이티브 연결 결과 전달, 주변 와이파이 권한 안내 여부 판단·설치당 1회 요청과 검색 결과로 이름 보정, 시스템 와이파이 설정 열기 | 공유 화면 전환, 실제 인터넷 연결 성공 판정 |
 | `src/features/wifi/services/share-wifi.ts` | 시스템 공유용 텍스트 구성과 Share API 호출 | 공유 완료 UI, 수신 앱·대화방 선택 |
 | `src/features/wifi/services/copy-wifi-password.ts` | 비밀번호 원문 복사, 플랫폼의 실패 반환값을 오류로 정규화 | 토스트·재시도·표시 시간 관리 |
 
@@ -176,7 +176,7 @@ docs/                            출시 요건과 운영 용량 근거
 | `src/features/wifi/__tests__/share-actions.test.tsx` | 공유·복사 작업 상태와 실제 복사 서비스 조합 검증, 외부 SDK만 대체 |
 | `src/features/wifi/__tests__/scan-photo.test.ts` | 인식 응답·네트워크 실패·요청 제한·시간 초과 검증 |
 | `src/features/wifi/__tests__/parse-wifi-qr.test.ts` | 외부 WIFI 문자열 해석 규칙 검증 |
-| `src/features/wifi/__tests__/connect-wifi.test.ts` | Android 버전별 주변 와이파이 권한 요청, 거부·검색 실패 시 인식 값 유지 검증 |
+| `src/features/wifi/__tests__/connect-wifi.test.ts` | 권한 안내 1회 판단, Android 버전별 권한 요청, 거부·검색 실패 시 인식 값 유지 검증 |
 | `src/features/wifi/__tests__/nearby-network.test.ts` | 실제 이름 보정·대역별 이름 선택·애매한 후보 유지·보안 방식 판정 검증 |
 | `src/features/wifi/__tests__/wifi-qr.test.ts` | 생성과 해석을 왕복했을 때 원문과 보안 정보 보존 검증 |
 | `modules/wifi-manager/index.ts` | Expo 네이티브 모듈 탐색과 TypeScript 호출 계약 |
