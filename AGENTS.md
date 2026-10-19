@@ -5,11 +5,11 @@ Expo/React Native 모바일 앱이다. 모바일 우선 패턴, 성능, 크로�
 WiFi Please: 식당이나 카페의 와이파이 안내문을 찍으면 바로 연결해 주는 앱. 아래는 사용자와 정한 결정이며, 바꾸기 전에 사용자에게 확인한다.
 
 - **앱 화면 없이 바로 시스템 와이파이 창**: 촬영이나 QR 인식이 끝나면 앱 안의 확인/수정 화면을 거치지 않고 바로 시스템 와이파이 연결 창을 띄운다. 앱 확인 화면은 사용자 요청으로 삭제했으니 다시 만들지 않는다.
-- **사진 인식은 AI로**: 온디바이스 OCR(ML Kit)과 규칙 기반 파싱은 쓰지 않는다. 사진은 긴 쪽 1024px JPEG로 줄여 프록시 서버로 보내고, 서버가 Claude Haiku 4.5(`claude-haiku-4-5`)로 와이파이 이름과 비밀번호를 뽑는다. 규칙 기반 파서는 정확도 문제로 일부러 지웠다.
+- **사진 인식은 AI로**: 온디바이스 OCR(ML Kit)과 규칙 기반 파싱은 쓰지 않는다. 사진은 긴 쪽 1568px·약 115만 화소 이하 JPEG로 줄여 프록시 서버로 보내고, 서버가 Claude Haiku 5.5(`claude-haiku-5-5`, 생각 수준 `low`)로 와이파이 이름과 비밀번호를 뽑는다. 사용자가 2026-10-19에 Haiku 4.5에서 전환을 승인했다. 규칙 기반 파서는 정확도 문제로 일부러 지웠다.
 - **QR 코드는 앱에서 직접**: 와이파이 QR(`WIFI:S:...;P:...;;`)은 서버를 거치지 않고 `src/features/wifi/lib/wifi-qr.ts`로 읽는다.
-- **공유는 기본 Share API**: React Native의 `Share.share()`로 와이파이 이름과 비밀번호를 텍스트로 공유한다. 공유 버튼은 하나로 두고, 사용자가 시스템 공유 창에서 카카오톡 등 앱을 선택한다. 카카오 SDK나 자체 대화방 선택 화면은 만들지 않는다. 시스템 연결 창을 닫은 뒤 공유 화면을 연다. QR 확대, 비밀번호 확대 및 복사를 제공한다. 사용자가 전체 화면 시안을 승인했다. 와이파이 정보는 앱 메모리에만 보관하며 라우트 파라미터나 저장소에 기록하지 않는다.
+- **공유는 기본 Share API**: React Native의 `Share.share()`로 와이파이 이름과 비밀번호를 텍스트로 공유한다. 공유 버튼은 하나로 두고, 사용자가 시스템 공유 창에서 카카오톡 등 앱을 선택한다. 카카오 SDK나 자체 대화방 선택 화면은 만들지 않는다. 시스템 연결 창을 닫은 뒤 공유 화면을 연다. QR 확대, 비밀번호 확대 및 복사를 제공한다. 이미 연결된 와이파이는 앱이 저장된 비밀번호를 읽을 수 없으므로 촬영 화면의 "내 와이파이 공유"에서 Android 기본 QR 공유 방법을 안내하고 와이파이 설정을 연다. 연결 이력을 저장해 QR을 만드는 방식은 사용자가 선택하지 않았다. 사용자가 전체 화면 시안을 승인했다. 와이파이 정보는 앱 메모리에만 보관하며 라우트 파라미터나 저장소에 기록하지 않는다.
 - **프록시 서버는 Cloudflare Workers**: `server/` 폴더. API 키는 Cloudflare secret(`ANTHROPIC_API_KEY`)에만 있고 앱에는 절대 넣지 않는다. 설치별 하루 10회·최근 1분 3회·동시 1회, 전체 하루 300회·월 3,000회를 Durable Object 하나에서 원자적으로 선점한다. IP당 1분 30회는 보조 제한이다. 공개 사진 API는 Play Integrity를 필수 검증하며 설정 누락·저장소 장애 시 AI 호출을 차단한다. 배포 주소는 `.env`의 `EXPO_PUBLIC_SCAN_API_URL`. Vercel은 무료 요금제가 비상업 용도만 허용해서 쓰지 않기로 했다.
-- **Android 먼저**: Android 11 이상을 우선 지원하고 iOS는 나중에 한다. 시스템 와이파이 창은 `Settings.ACTION_WIFI_ADD_NETWORKS`(Android 11+)를 쓴다. `src/features/wifi/services/connect-wifi.ts`의 `openSystemWifiDialog()`는 Kotlin 네이티브 모듈(`modules/wifi-manager/`)을 호출한다. 시스템 창의 저장/취소 결과를 기다리며 실제 연결 성공으로 표시하지 않는다. 네이티브 코드는 실기기 검증이 필요하다.
+- **Android 먼저**: Android 11 이상을 우선 지원하고 iOS는 나중에 한다. 시스템 와이파이 창은 `Settings.ACTION_WIFI_ADD_NETWORKS`(Android 11+)를 쓴다. `src/features/wifi/services/connect-wifi.ts`의 `openSystemWifiDialog()`는 Kotlin 네이티브 모듈(`modules/wifi-manager/`)을 호출한다. 시스템 창의 저장/취소 결과를 기다리며 실제 연결 성공으로 표시하지 않는다. 사진으로 읽은 이름은 시스템 창을 열기 전에 주변 와이파이 검색 결과(Android 13+ 근처 기기 권한, 12 이하 위치 권한)와 맞춰 실제 이름·보안 방식으로 고친다. 권한을 거부하면 인식 값 그대로 연다. 서드파티 앱은 시스템 와이파이 설정 화면에 비밀번호를 미리 채울 수 없다. 네이티브 코드는 실기기 검증이 필요하다.
 - **디자인**: 포인트 색 블루 `#1A73E8`, 밝은 바탕 `#F5F6F8`. 값은 `src/constants/theme.ts`에 있다. 앱 이름은 WiFi Please. 기술 식별자는 `wifi-please`, Android 패키지는 `com.wifiplease.app`, 딥링크 스킴은 `wifiplease`로 통일한다.
 - **로고**: 사용자가 고른 F안, "손 위의 와이파이"를 사용한다. 검정 `#171717` 바탕과 흰색 심볼이며 원본은 `assets/brand/wifi-please.svg`다. 앱 아이콘, 시작 화면, 앱 내부 브랜드 마크에 동일한 도형을 사용한다. Android 전경과 단색 레이어만 중앙 기준 84%로 축소해 안전 영역을 확보한다. 앱 UI의 블루 포인트 색은 유지한다.
 - **출시 개인정보 처리**: 사진 작업 전 외부 전송을 고지하고 명시적 동의를 받는다. QR에는 AI 동의를 요구하지 않는다. 사진 인식 뒤 확인 화면을 추가하는 것과 구분한다. 정책 원문은 `shared/`에서 앱과 Worker가 함께 사용한다. 실제 운영자 연락처 없이 production 빌드나 정책 정식 공개를 완료 처리하지 않는다.
@@ -84,11 +84,13 @@ src/
       share-feedback.tsx         공유 오류와 복사 토스트 표시
     lib/
       wifi-qr.ts                 QR 해석과 생성
+      nearby-network.ts          인식한 이름과 주변 실제 네트워크 대조
       scan-error.ts              인식 오류 계약과 제한 안내 문구
     services/
       scan-photo.ts              사진 처리와 서버 요청
       scan-auth.ts               설치 식별자·중복 요청 ID·Play Integrity 증명
       photo-cache.ts             작업 사진 사본의 안전한 삭제
+      photo-consent.ts           사진 전송 동의의 설치별 보관
       connect-wifi.ts            시스템 연결 창 호출
       share-wifi.ts              시스템 Share 호출
       copy-wifi-password.ts      클립보드 복사와 실패 결과 정규화
@@ -128,7 +130,7 @@ docs/                            출시 요건과 운영 용량 근거
 | --- | --- | --- |
 | `src/app/_layout.tsx` | Stack과 앱 전역 세션 Provider 구성 | 인식·공유 작업 실행 |
 | `src/app/+native-intent.tsx` | 외부 네이티브 링크의 허용 화면·길이 검사와 쿼리 제거 | 와이파이 데이터 전달, 웹 라우팅 |
-| `src/app/index.tsx` | 권한 안내·카메라 화면 조합, 플래시 표시 상태, 사용자 입력 연결 | 서버 통신, 시스템 와이파이 호출 구현 |
+| `src/app/index.tsx` | 권한 안내·카메라 화면 조합, 플래시 표시 상태, 연결된 와이파이 공유 안내 진입, 사용자 입력 연결 | 서버 통신, 시스템 와이파이 호출 구현 |
 | `src/app/share.tsx` | 정보·QR·공유 버튼 배치, 정보 없음 처리, 화면 이동 정책 | 공유·복사 SDK 호출 |
 | `src/app/qr.tsx` | QR 확대 화면 구성, 정보 없음 처리, 뒤로 가기 정책 | QR 문자열 규칙, 시스템 공유 구현 |
 | `src/app/password.tsx` | 비밀번호 확대 화면 구성, 빈 정보 처리, 뒤로 가기 정책 | 클립보드 접근, 비밀번호 가공 |
@@ -148,7 +150,7 @@ docs/                            출시 요건과 운영 용량 근거
 | --- | --- | --- |
 | `src/features/wifi/types.ts` | 와이파이 공통 데이터 타입 정의 | SDK 의존, 실행 로직 |
 | `src/features/wifi/session.tsx` | 메모리 세션 Provider와 접근 훅 | 영구 저장, 라우트 파라미터 전달 |
-| `src/features/wifi/use-capture.ts` | 사진 전송 동의, 촬영·사진 선택·QR부터 연결·공유까지 조율, 실행 잠금·오류 안내·재시도 사진 수명 | JSX, 서버 통신·네이티브 연결 세부 구현 |
+| `src/features/wifi/use-capture.ts` | 사진 전송 동의, 연결된 와이파이 공유 안내, 촬영·사진 선택·QR부터 연결·공유까지 조율, 실행 잠금·오류 안내·재시도 사진 수명 | JSX, 서버 통신·네이티브 연결 세부 구현 |
 | `src/features/wifi/use-camera-lifecycle.ts` | 카메라 참조·준비 상태, 권한 요청, 화면 포커스와 AppState 구독·해제 | 사진 인식, 연결 결과 처리, 오류 팝업 렌더링 |
 | `src/features/wifi/use-share-actions.ts` | 공유·복사·재연결 작업의 상태, 중복 실행 방지, 재시도, 토스트 표시 시간 | SDK 직접 호출, JSX·배치 |
 | `src/features/wifi/components/camera-permission.tsx` | 최초 권한·거부 상태에 맞는 안내와 버튼 표시 | 권한 요청·설정 앱 열기 실행 |
@@ -156,10 +158,12 @@ docs/                            출시 요건과 운영 용량 근거
 | `src/features/wifi/components/shutter-button.tsx` | 촬영 버튼 표시·입력 상태 | 카메라 접근 |
 | `src/features/wifi/components/wifi-qr.tsx` | 와이파이 정보를 QR 이미지로 렌더링, 크기·여백 결정 | QR 형식 규칙, 네트워크 연결 |
 | `src/features/wifi/components/share-feedback.tsx` | 공유 훅의 상태를 팝업·토스트로 표시하고 위치 결정 | 공유 실행, 오류 상태와 타이머 관리 |
+| `src/features/wifi/lib/nearby-network.ts` | 인식한 이름을 주변 검색 결과와 비교해 실제 이름·보안 방식 선택, 애매하면 원래 값 유지 | 권한 요청, 네이티브 검색 호출 |
 | `src/features/wifi/lib/wifi-qr.ts` | 동일한 WIFI 형식의 해석·생성·이스케이프 처리 | React, Expo, 네트워크와 기기 접근 |
 | `src/features/wifi/services/scan-photo.ts` | 인식 요청에 필요한 사진 축소·인코딩, HTTP 요청, 제한시간·응답 검사 | 사용자 안내 문구와 화면 이동 |
 | `src/features/wifi/services/photo-cache.ts` | 앱 캐시의 작업 사본만 삭제하고 실패를 격리 | 갤러리 원본 삭제, 재시도 수명 결정 |
-| `src/features/wifi/services/connect-wifi.ts` | 플랫폼 지원 확인과 네이티브 연결 결과 전달 | 공유 화면 전환, 실제 인터넷 연결 성공 판정 |
+| `src/features/wifi/services/photo-consent.ts` | 고지 개정일과 함께 사진 전송 동의를 기기 보안 저장소에 보관·확인 | 동의 팝업 표시, 동의 전 사진 작업 차단 결정 |
+| `src/features/wifi/services/connect-wifi.ts` | 플랫폼 지원 확인과 네이티브 연결 결과 전달, 주변 와이파이 권한 요청과 검색 결과로 이름 보정, 시스템 와이파이 설정 열기 | 공유 화면 전환, 실제 인터넷 연결 성공 판정 |
 | `src/features/wifi/services/share-wifi.ts` | 시스템 공유용 텍스트 구성과 Share API 호출 | 공유 완료 UI, 수신 앱·대화방 선택 |
 | `src/features/wifi/services/copy-wifi-password.ts` | 비밀번호 원문 복사, 플랫폼의 실패 반환값을 오류로 정규화 | 토스트·재시도·표시 시간 관리 |
 
@@ -172,12 +176,13 @@ docs/                            출시 요건과 운영 용량 근거
 | `src/features/wifi/__tests__/share-actions.test.tsx` | 공유·복사 작업 상태와 실제 복사 서비스 조합 검증, 외부 SDK만 대체 |
 | `src/features/wifi/__tests__/scan-photo.test.ts` | 인식 응답·네트워크 실패·요청 제한·시간 초과 검증 |
 | `src/features/wifi/__tests__/parse-wifi-qr.test.ts` | 외부 WIFI 문자열 해석 규칙 검증 |
+| `src/features/wifi/__tests__/nearby-network.test.ts` | 실제 이름 보정·대역별 이름 선택·애매한 후보 유지·보안 방식 판정 검증 |
 | `src/features/wifi/__tests__/wifi-qr.test.ts` | 생성과 해석을 왕복했을 때 원문과 보안 정보 보존 검증 |
 | `modules/wifi-manager/index.ts` | Expo 네이티브 모듈 탐색과 TypeScript 호출 계약 |
 | `modules/wifi-manager/expo-module.config.json` | Android 네이티브 모듈 등록 |
 | `modules/wifi-manager/android/build.gradle` | 로컬 모듈의 빌드 설정 |
 | `modules/wifi-manager/android/src/main/AndroidManifest.xml` | 로컬 모듈의 Android 선언 |
-| `modules/wifi-manager/android/src/main/java/expo/modules/wifimanager/WifiManagerModule.kt` | 시스템 연결 창 실행, 결과 해석, 대기 Promise 수명 관리 |
+| `modules/wifi-manager/android/src/main/java/expo/modules/wifimanager/WifiManagerModule.kt` | 시스템 연결 창 실행, 결과 해석, 대기 Promise 수명 관리, 주변 와이파이 검색 결과 반환 |
 | `server/src/index.ts` | 요청 경로 분기, `/scan` 검증·제한과 AI 호출·응답 처리 |
 | `server/src/scan-quota.ts` | Durable Object의 원자적 횟수 선점·동시 요청·중복 요청 차단과 만료 자료 삭제 |
 | `server/src/play-integrity.ts` | Google 서버 인증과 요청 해시·앱·기기·라이선스 판정 검증, 로컬 전용 개발 예외 |
