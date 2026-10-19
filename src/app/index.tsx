@@ -31,7 +31,11 @@ export default function CaptureScreen() {
       />
     ) : <>
       <View style={styles.topBar}><Text style={styles.brand}>WiFi Please</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="플래시" accessibilityState={{ selected: flash }} onPress={() => setFlash(!flash)} style={[styles.flash, flash && { backgroundColor: 'white' }]}><FlashIcon color={flash ? colors.camera : 'white'} /></Pressable>
+        <View style={styles.topActions}>
+          {/* 이미 연결된 사람이 새로 온 친구에게 Android 기본 QR 공유를 보여줄 수 있게 안내한다. */}
+          <Pressable accessibilityRole="button" accessibilityLabel="지금 연결된 와이파이 공유" disabled={busy} onPress={capture.guideCurrentWifiShare} style={[styles.sharePill, busy && { opacity: .35 }]}><Icon name="qr" color="white" size={18} /><Text style={styles.sharePillText}>내 와이파이 공유</Text></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="플래시" accessibilityState={{ selected: flash }} onPress={() => setFlash(!flash)} style={[styles.flash, flash && { backgroundColor: 'white' }]}><FlashIcon color={flash ? colors.camera : 'white'} /></Pressable>
+        </View>
       </View>
       <View style={styles.preview}>
         {/* 촬영 중 스캐너를 끄면 Android 카메라가 재생성되므로 QR 결과 차단은 훅에서 처리한다. */}
@@ -61,6 +65,9 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 6 },
   brand: { color: 'white', fontSize: 18, fontWeight: '800' },
+  topActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  sharePill: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, borderRadius: 22, backgroundColor: '#FFFFFF20' },
+  sharePillText: { color: 'white', fontSize: 13, fontWeight: '700' },
   flash: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF20' },
   preview: { flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: '#17191C' },
   hint: { position: 'absolute', top: 24, left: 12, right: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, padding: 12, borderRadius: 24, backgroundColor: '#00000088' },

@@ -1,5 +1,5 @@
 import type { WifiCredentials } from '../types';
-import { PermissionsAndroid, Platform } from 'react-native';
+import { Linking, PermissionsAndroid, Platform } from 'react-native';
 import WifiManager from '../../../../modules/wifi-manager';
 import { matchNearbyNetwork } from '../lib/nearby-network';
 
@@ -26,4 +26,10 @@ export async function correctWithNearbyNetwork(wifi: WifiCredentials): Promise<W
   } catch {
     return wifi;
   }
+}
+
+// 연결된 와이파이를 Android 기본 QR 공유로 보여줄 수 있도록 시스템 와이파이 설정을 연다. 앱은 저장된 비밀번호를 읽을 수 없다.
+export async function openWifiSettings() {
+  if (Platform.OS !== 'android') throw new Error('와이파이 설정 열기는 Android에서 사용할 수 있어요.');
+  await Linking.sendIntent('android.settings.WIFI_SETTINGS');
 }

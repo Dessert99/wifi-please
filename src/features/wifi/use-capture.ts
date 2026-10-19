@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DialogState } from '@/components/ui/dialog';
 import { parseWifiQr } from '@/features/wifi/lib/wifi-qr';
 import { ScanError, scanWifiPhoto, type Photo } from '@/features/wifi/services/scan-photo';
-import { correctWithNearbyNetwork, openSystemWifiDialog } from '@/features/wifi/services/connect-wifi';
+import { correctWithNearbyNetwork, openSystemWifiDialog, openWifiSettings } from '@/features/wifi/services/connect-wifi';
 import { deleteCachedPhoto } from '@/features/wifi/services/photo-cache';
 import { hasPhotoConsent, savePhotoConsent } from '@/features/wifi/services/photo-consent';
 import { scanBlockNotice } from './lib/scan-error';
@@ -46,6 +46,20 @@ export function useCapture() {
     if (locked.current) return;
     if (photoConsent.current) { void run(action); return; }
     setDialog({ title: '사진을 AI로 읽을까요?', message: privacy.disclosure, primary: '동의하고 계속', onPrimary: () => { photoConsent.current = true; void savePhotoConsent(); void run(action); }, secondary: '취소', onSecondary: closeDialog });
+  }
+  // 이미 연결된 와이파이는 비밀번호를 읽을 수 없으므로 Android 기본 QR 공유 방법을 안내하고 설정을 연다.
+  function guideCurrentWifiShare() {
+    if (locked.current) return;
+    setDialog({
+      title: '지금 연결된 와이파이 공유',
+      message: '친구가 처음 왔다면 Android 기본 기능으로 QR을 보여주세요.\n\n1. 와이파이 설정에서 연결된 와이파이의 톱니바퀴를 눌러요.\n2. "QR 코드" 또는 "공유"를 눌러요. 화면 잠금 확인이 나올 수 있어요.\n3. 친구가 카메라로 QR을 찍으면 바로 연결돼요.',
+      primary: '와이파이 설정 열기',
+      onPrimary: () => {
+        closeDialog();
+        openWifiSettings().catch(() => setDialog({ title: '설정을 열지 못했어요', message: '설정 앱의 와이파이 메뉴에서 직접 열어 주세요.', primary: '닫기', onPrimary: closeDialog }));
+      },
+      secondary: '닫기',
+    });
   }
   // 메모리에 보관한 최근 와이파이 정보를 공유 화면에서 보여준다.
   function showInfo() { closeDialog(); router.push('/share'); }
@@ -150,5 +164,5 @@ export function useCapture() {
       setDialog({ title: '설정을 열지 못했어요', message: '기기 설정에서 WiFi Please의 카메라 권한을 허용해 주세요.', primary: '닫기', onPrimary: closeDialog });
     }
   }
-  return { permission, cameraRef, ready, setReady, cameraError, cameraActive, busy, stage, dialog, closeDialog, pickPhoto, takePhoto, onBarcodeScanned, allowCamera, wifi, showInfo };
+  return { permission, cameraRef, ready, setReady, cameraError, cameraActive, busy, stage, dialog, closeDialog, pickPhoto, takePhoto, onBarcodeScanned, allowCamera, wifi, showInfo, guideCurrentWifiShare };
 }

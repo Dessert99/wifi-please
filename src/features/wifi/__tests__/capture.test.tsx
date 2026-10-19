@@ -5,7 +5,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { launchImageLibraryAsync } from 'expo-image-picker';
 import { router } from 'expo-router';
 import { scanWifiPhoto, ScanError } from '@/features/wifi/services/scan-photo';
-import { openSystemWifiDialog } from '@/features/wifi/services/connect-wifi';
+import { openSystemWifiDialog, openWifiSettings } from '@/features/wifi/services/connect-wifi';
 import { useWifiSession } from '../session';
 import { useCapture } from '../use-capture';
 import { deleteCachedPhoto } from '../services/photo-cache';
@@ -30,7 +30,7 @@ vi.mock('expo-router', async () => {
     useFocusEffect: (effect: React.EffectCallback) => useEffect(effect, [effect]),
   };
 });
-vi.mock('@/features/wifi/services/connect-wifi', () => ({ openSystemWifiDialog: vi.fn(), correctWithNearbyNetwork: vi.fn(async (wifi: unknown) => wifi) }));
+vi.mock('@/features/wifi/services/connect-wifi', () => ({ openSystemWifiDialog: vi.fn(), correctWithNearbyNetwork: vi.fn(async (wifi: unknown) => wifi), openWifiSettings: vi.fn(async () => {}) }));
 vi.mock('@/features/wifi/services/scan-photo', () => ({
   scanWifiPhoto: vi.fn(),
   ScanError: class extends Error {
@@ -210,6 +210,22 @@ it('동의하면 기기에 저장하고, 저장된 동의가 있으면 다시 �
   await act(async () => { capture.pickPhoto(); });
   expect(capture.dialog).toBeNull();
   expect(launchImageLibraryAsync).toHaveBeenCalledTimes(2);
+});
+
+it('연결된 와이파이 공유는 Android 기본 QR 공유를 안내하고 와이파이 설정을 연다', async () => {
+  await act(async () => { capture.guideCurrentWifiShare(); });
+  expect(currentDialog().message).toContain('QR 코드');
+  expect(openWifiSettings).not.toHaveBeenCalled();
+  await act(async () => { currentDialog().onPrimary(); });
+  expect(openWifiSettings).toHaveBeenCalledTimes(1);
+  expect(capture.dialog).toBeNull();
+});
+
+it('설정을 열지 못하면 직접 여는 방법을 안내한다', async () => {
+  vi.mocked(openWifiSettings).mockRejectedValueOnce(new Error('설정 없음'));
+  await act(async () => { capture.guideCurrentWifiShare(); });
+  await act(async () => { currentDialog().onPrimary(); });
+  expect(currentDialog().title).toBe('설정을 열지 못했어요');
 });
 
 it('실패한 사진은 재시도 동안 유지하고 포기하면 캐시를 삭제한다', async () => {
