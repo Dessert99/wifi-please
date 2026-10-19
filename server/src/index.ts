@@ -1,5 +1,5 @@
 // WiFi Please 프록시 서버
-// 앱이 보낸 와이파이 안내문 사진을 Claude Haiku 4.5에 보내고, 와이파이 이름과 비밀번호만 돌려준다.
+// 앱이 보낸 와이파이 안내문 사진을 Claude Haiku 5.5에 보내고, 와이파이 이름과 비밀번호만 돌려준다.
 // API 키는 이 서버에만 있고 앱에는 없다.
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -13,7 +13,7 @@ export { ScanQuota } from './scan-quota';
 // wrangler secret으로 넣는 값은 wrangler.jsonc에 없어서 직접 타입을 붙인다.
 type AppEnv = Env & IntegrityEnv & { ANTHROPIC_API_KEY: string };
 
-const MODEL = 'claude-haiku-4-5';
+const MODEL = 'claude-haiku-5-5';
 
 // 앱에서 약 115만 화소로 줄여 보내므로 보통 수백 KB다. 그보다 훨씬 크면 거절한다.
 const MAX_IMAGE_BASE64_LENGTH = 4 * 1024 * 1024;
@@ -104,7 +104,8 @@ export default {
 			const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, timeout: 25000, maxRetries: 0 });
 			const response = await client.messages.parse({
 				model: MODEL,
-				max_tokens: 256,
+				// 기본으로 켜지는 생각 과정도 출력 한도에 포함되므로 답이 잘리지 않게 여유를 둔다.
+				max_tokens: 2048,
 				messages: [
 					{
 						role: 'user',
@@ -115,10 +116,11 @@ export default {
 						],
 					},
 				],
-				output_config: { format: zodOutputFormat(WifiResult) },
+				// 글자를 옮겨 적는 단순 추출이라 생각을 짧게 해 응답 시간과 비용을 줄인다.
+				output_config: { format: zodOutputFormat(WifiResult), effort: 'low' },
 			});
 
-			// 형식에 맞는 답을 못 받으면 "못 찾음"으로 처리한다.
+			// 답에 구조화 출력이 없으면 "못 찾음"으로 처리한다.
 			const result = response.parsed_output ?? { ssid: null, password: null };
 			return json(result, 200);
 		} catch (error) {
@@ -128,6 +130,8 @@ export default {
 				console.error('Claude API error', error.status);
 				return json({ error: 'upstream_error' }, 502);
 			}
+			// 안전 필터 거절문이나 한도에 잘린 답은 구조화 출력 해석에 실패하므로 "못 찾음"으로 안내한다.
+			if (error instanceof Anthropic.AnthropicError) return json({ ssid: null, password: null }, 200);
 			return json({ error: 'upstream_error' }, 502);
 		} finally {
 			// AI 오류도 횟수는 돌려주지 않고 동시 요청 잠금만 해제한다.

@@ -3,9 +3,15 @@ import worker from '../src/index';
 
 const ai = vi.hoisted(() => ({ parse: vi.fn(), options: vi.fn() }));
 // 유료 API와 Cloudflare 실행 환경만 대체해 실제 요청 검증과 응답을 확인한다.
+const sdkErrors = vi.hoisted(() => {
+  class AnthropicError extends Error {}
+  class APIError extends AnthropicError {}
+  return { AnthropicError, APIError, RateLimitError: class extends APIError {} };
+});
 vi.mock('@anthropic-ai/sdk', () => ({ default: class {
-  static APIError = class extends Error {};
-  static RateLimitError = class extends Error {};
+  static AnthropicError = sdkErrors.AnthropicError;
+  static APIError = sdkErrors.APIError;
+  static RateLimitError = sdkErrors.RateLimitError;
   messages = { parse: ai.parse };
   constructor(options: unknown) { ai.options(options); }
 } }));
@@ -50,6 +56,18 @@ it('예상하지 못한 AI 오류 내용에 민감 정보가 있어도 클라이
   const response = await request({ image: '사진' });
   expect(response.status).toBe(502);
   expect(await response.json()).toEqual({ error: 'upstream_error' });
+});
+
+it('최신 Haiku 모델을 낮은 생각 수준으로 호출하고 생각 과정이 들어갈 출력 한도를 둔다', async () => {
+  await request({ image: '사진' });
+  expect(ai.parse).toHaveBeenCalledWith(expect.objectContaining({ model: 'claude-haiku-5-5', max_tokens: 2048, output_config: expect.objectContaining({ effort: 'low' }) }));
+});
+
+it('안전 필터 거절이나 잘린 답으로 구조화 출력을 해석하지 못하면 못 찾음으로 응답한다', async () => {
+  ai.parse.mockRejectedValueOnce(new sdkErrors.AnthropicError('Failed to parse structured output'));
+  const response = await request({ image: '사진' });
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({ ssid: null, password: null });
 });
 
 it('약관과 개인정보 페이지는 AI와 요청 제한을 사용하지 않고 내용을 제공한다', async () => {
