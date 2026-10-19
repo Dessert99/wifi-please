@@ -10,6 +10,7 @@ import { scanWifiPhoto } from '../services/scan-photo';
 import { openSystemWifiDialog } from '../services/connect-wifi';
 import { Dialog } from '@/components/ui/dialog';
 vi.mock('../services/photo-cache', () => ({ deleteCachedPhoto: vi.fn() }));
+vi.mock('../services/photo-consent', () => ({ hasPhotoConsent: vi.fn(async () => false), savePhotoConsent: vi.fn(async () => {}) }));
 
 const camera = vi.hoisted(() => ({ takePicture: vi.fn(), abort: vi.fn() }));
 

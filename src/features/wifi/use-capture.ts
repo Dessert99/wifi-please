@@ -7,6 +7,7 @@ import { parseWifiQr } from '@/features/wifi/lib/wifi-qr';
 import { ScanError, scanWifiPhoto, type Photo } from '@/features/wifi/services/scan-photo';
 import { openSystemWifiDialog } from '@/features/wifi/services/connect-wifi';
 import { deleteCachedPhoto } from '@/features/wifi/services/photo-cache';
+import { hasPhotoConsent, savePhotoConsent } from '@/features/wifi/services/photo-consent';
 import { scanBlockNotice } from './lib/scan-error';
 import privacy from '../../../shared/privacy.json';
 import type { WifiCredentials } from '@/features/wifi/types';
@@ -31,6 +32,8 @@ export function useCapture() {
   // 비동기 결과가 도착했을 때 화면이 아직 존재하는지 확인할 수 있게 한다.
   useEffect(() => {
     mounted.current = true;
+    // 이전 실행에서 받은 동의를 불러와 설치당 한 번만 묻는다.
+    void hasPhotoConsent().then(saved => { if (saved) photoConsent.current = true; });
     return () => { mounted.current = false; deleteCachedPhoto(pendingPhoto.current); };
   }, []);
 
@@ -42,7 +45,7 @@ export function useCapture() {
   function withPhotoConsent(action: () => Promise<void>) {
     if (locked.current) return;
     if (photoConsent.current) { void run(action); return; }
-    setDialog({ title: '사진을 AI로 읽을까요?', message: privacy.disclosure, primary: '동의하고 계속', onPrimary: () => { photoConsent.current = true; void run(action); }, secondary: '취소', onSecondary: closeDialog });
+    setDialog({ title: '사진을 AI로 읽을까요?', message: privacy.disclosure, primary: '동의하고 계속', onPrimary: () => { photoConsent.current = true; void savePhotoConsent(); void run(action); }, secondary: '취소', onSecondary: closeDialog });
   }
   // 메모리에 보관한 최근 와이파이 정보를 공유 화면에서 보여준다.
   function showInfo() { closeDialog(); router.push('/share'); }

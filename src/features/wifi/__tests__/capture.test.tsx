@@ -9,7 +9,9 @@ import { openSystemWifiDialog } from '@/features/wifi/services/connect-wifi';
 import { useWifiSession } from '../session';
 import { useCapture } from '../use-capture';
 import { deleteCachedPhoto } from '../services/photo-cache';
+import { hasPhotoConsent, savePhotoConsent } from '@/features/wifi/services/photo-consent';
 vi.mock('../services/photo-cache', () => ({ deleteCachedPhoto: vi.fn() }));
+vi.mock('@/features/wifi/services/photo-consent', () => ({ hasPhotoConsent: vi.fn(async () => false), savePhotoConsent: vi.fn(async () => {}) }));
 
 // 기기 API만 대체하고 React 훅과 비동기 흐름은 실제 구현으로 검사한다.
 vi.mock('react-native', () => ({
@@ -197,6 +199,17 @@ it('사진 전송 동의 전과 취소 후에는 사진 선택기와 AI를 실�
   expect(scanWifiPhoto).not.toHaveBeenCalled();
   await act(async () => { capture.pickPhoto(); });
   expect(currentDialog().primary).toBe('동의하고 계속');
+});
+
+it('동의하면 기기에 저장하고, 저장된 동의가 있으면 다시 묻지 않는다', async () => {
+  await choosePhoto();
+  expect(savePhotoConsent).toHaveBeenCalledTimes(1);
+  await act(async () => { renderer.unmount(); });
+  vi.mocked(hasPhotoConsent).mockResolvedValueOnce(true);
+  await act(async () => { renderer = create(<Harness />); });
+  await act(async () => { capture.pickPhoto(); });
+  expect(capture.dialog).toBeNull();
+  expect(launchImageLibraryAsync).toHaveBeenCalledTimes(2);
 });
 
 it('실패한 사진은 재시도 동안 유지하고 포기하면 캐시를 삭제한다', async () => {
