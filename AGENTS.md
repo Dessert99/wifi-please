@@ -102,7 +102,7 @@ scripts/                         출시 전 검사
   __tests__/                     검사기와 보안 호환 코드의 Vitest 회귀 검증
 vendor/                          공식 보안 패치의 최소 호환 사본과 원본 라이선스
 plugins/                         생성되는 네이티브 프로젝트의 설정 변경
-docs/                            출시 요건과 운영 용량 근거
+docs/                            개발 기록, 출시 요건과 운영 용량 근거
 ```
 
 - `app/`은 화면 구성과 라우팅을 담당한다. 짧은 화면을 다른 폴더로 옮겨 재수출하는 파일을 만들지 않는다.
@@ -206,6 +206,8 @@ docs/                            출시 요건과 운영 용량 근거
 | `src/__tests__/native-intent.test.ts` | 외부 링크 입력 제한과 기존 화면 경로 보존 검증 |
 | `server/test/scan.test.ts` | 유료 호출 없이 입력 크기·요청 제한·민감 응답·정책 경로 검증 |
 | `docs/google-play-release.md`, `docs/usage-capacity.md` | 심사 적용 범위·남은 작업과 운영 용량 가정·근거 관리 |
+| `README.md`, `docs/development.md` | 외부 방문자용 소개·실행 방법, 식별자·아이콘 내보내기·EAS 빌드·검증 범위의 내부 기록 |
+| `assets/store/web-previews/` | README에 쓰는 공유·QR·비밀번호 화면 미리보기 이미지 |
 | `assets/store/feature-graphic.svg`, `assets/store/feature-graphic.png` | 기존 F 로고를 사용한 Google Play 기능 그래픽 원본과 출력 |
 | `vitest.config.mts` | 테스트 환경·대상·경로 별칭 설정 |
 | `eslint.config.js` | 코드 검사와 공통 UI·공유 훅의 정적 import 경계 검사 |
